@@ -386,7 +386,7 @@ onMounted(() => {
   justify-content: center;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
 .icon-button svg {
@@ -402,6 +402,13 @@ onMounted(() => {
 .icon-button.secondary:hover {
   background-color: #5a6268;
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.icon-button.secondary:active {
+  transform: translateY(0) scale(0.95);
+  background-color: #545b62;
+  box-shadow: 0 1px 4px rgba(108, 117, 125, 0.2);
 }
 
 button.danger,
@@ -415,16 +422,29 @@ button.danger:hover,
 .icon-button.danger:hover {
   background-color: #c82333;
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+button.danger:active,
+.icon-button.danger:active {
+  transform: translateY(0) scale(0.95);
+  background-color: #bd2130;
+  box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
 }
 
 .sortable {
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s;
+  transition: all 0.15s ease;
 }
 
 .sortable:hover {
   background-color: rgba(108, 117, 125, 0.1);
+}
+
+.sortable:active {
+  background-color: rgba(108, 117, 125, 0.2);
+  transform: scale(0.99);
 }
 
 .sort-indicator {

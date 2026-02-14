@@ -122,6 +122,17 @@ button {
   cursor: pointer;
   background: var(--accent);
   color: #0b0f19;
+  transition: all 0.15s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.2);
 }
 
 button.ghost {
@@ -130,9 +141,29 @@ button.ghost {
   border: 1px solid rgba(148, 163, 184, 0.4);
 }
 
+button.ghost:hover {
+  background: rgba(148, 163, 184, 0.1);
+  box-shadow: none;
+}
+
+button.ghost:active {
+  transform: scale(0.98);
+  background: rgba(148, 163, 184, 0.15);
+}
+
 button.secondary {
   background: var(--surface);
   color: var(--text);
+}
+
+button.secondary:hover {
+  background: rgba(31, 41, 55, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+button.secondary:active {
+  transform: translateY(0) scale(0.98);
+  background: rgba(31, 41, 55, 0.9);
 }
 
 .form-grid {
