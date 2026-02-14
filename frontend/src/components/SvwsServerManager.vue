@@ -11,6 +11,7 @@ const schoolSortBy = ref<'schulnummer' | 'name'>('schulnummer');
 const schoolSortDirection = ref<'asc' | 'desc'>('asc');
 const schoolSearchQuery = ref('');
 const serverSearchQuery = ref('');
+const selectedSchools = ref<Set<string>>(new Set());
 
 const form = ref({
   name: "",
@@ -101,6 +102,77 @@ const toggleSchoolSort = (column: 'schulnummer' | 'name') => {
     schoolSortBy.value = column;
     schoolSortDirection.value = 'asc';
   }
+};
+
+const allSchoolsSelected = computed(() => {
+  if (filteredAndSortedSchools.value.length === 0) return false;
+  // Check if all visible schools are selected
+  return filteredAndSortedSchools.value.every(school => school._uid && selectedSchools.value.has(school._uid));
+});
+
+const toggleSchoolSelection = (uid: string) => {
+  if (selectedSchools.value.has(uid)) {
+    selectedSchools.value.delete(uid);
+  } else {
+    selectedSchools.value.add(uid);
+  }
+};
+
+const toggleAllSchools = () => {
+  if (allSchoolsSelected.value) {
+    selectedSchools.value.clear();
+  } else {
+    filteredAndSortedSchools.value.forEach(school => {
+      if (school._uid) {
+        selectedSchools.value.add(school._uid);
+      }
+    });
+  }
+};
+
+const createBackup = () => {
+  if (selectedSchools.value.size === 0) {
+    alert('Bitte wählen Sie mindestens eine Schule aus');
+    return;
+  }
+  const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
+  console.log('Backup erstellen für Schulen:', selectedSchoolData);
+  // TODO: Backend call
+};
+
+const deleteSchools = () => {
+  if (selectedSchools.value.size === 0) {
+    alert('Bitte wählen Sie mindestens eine Schule aus');
+    return;
+  }
+  const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
+  console.log('Schulen löschen:', selectedSchoolData);
+  // TODO: Backend call
+};
+
+const duplicateSchools = () => {
+  if (selectedSchools.value.size === 0) {
+    alert('Bitte wählen Sie mindestens eine Schule aus');
+    return;
+  }
+  const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
+  console.log('Schulen duplizieren:', selectedSchoolData);
+  // TODO: Backend call
+};
+
+const migrateFromSchild = () => {
+  if (selectedSchools.value.size === 0) {
+    alert('Bitte wählen Sie mindestens eine Schule aus');
+    return;
+  }
+  const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
+  console.log('Migration aus Schild-NRW2 für Schulen:', selectedSchoolData);
+  // TODO: Backend call
+};
+
+const createEmptySchool = () => {
+  console.log('Leere Schule einrichten auf Server:', store.selectedServer?.id);
+  // TODO: Backend call
 };
 
 const canCreate = computed(() =>
@@ -300,6 +372,54 @@ onMounted(() => {
       <div v-else-if="store.error" class="error-text">{{ store.error }}</div>
 
       <div v-else>
+        <!-- New School Button -->
+        <div class="school-header-actions">
+          <button type="button" @click="createEmptySchool" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <path d="M12 5v14"></path>
+              <path d="M5 12h14"></path>
+            </svg>
+            Leere Schule einrichten
+          </button>
+        </div>
+
+        <!-- Action Toolbar -->
+        <div class="school-actions-toolbar">
+          <button type="button" @click="createBackup" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Backup erstellen
+          </button>
+          
+          <button type="button" @click="deleteSchools" class="danger">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+            Schule löschen
+          </button>
+          
+          <button type="button" @click="duplicateSchools" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Schule duplizieren
+          </button>
+          
+          <button type="button" @click="migrateFromSchild" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <line x1="7" y1="17" x2="17" y2="7"></line>
+              <polyline points="7 7 17 7 17 17"></polyline>
+            </svg>
+            Migration aus Schild-NRW2
+          </button>
+        </div>
+
         <!-- Search Box -->
         <div class="search-box">
           <input 
@@ -314,6 +434,14 @@ onMounted(() => {
         <table class="table">
           <thead>
             <tr>
+              <th style="width: 40px;">
+                <input 
+                  type="checkbox" 
+                  :checked="allSchoolsSelected"
+                  @change="toggleAllSchools"
+                  title="Alle auswählen"
+                />
+              </th>
               <th class="sortable" @click="toggleSchoolSort('schulnummer')">
               Schulnummer
               <span class="sort-indicator" v-if="schoolSortBy === 'schulnummer'">
@@ -331,14 +459,22 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="school in filteredAndSortedSchools" :key="school.schulnummer">
+          <tr v-for="school in filteredAndSortedSchools" :key="school._uid || school.schulnummer">
+            <td>
+              <input 
+                type="checkbox" 
+                v-if="school._uid"
+                :checked="selectedSchools.has(school._uid)"
+                @change="toggleSchoolSelection(school._uid)"
+              />
+            </td>
             <td><strong>{{ school.schulnummer }}</strong></td>
             <td>{{ school.name }}</td>
             <td>{{ school.ort }}</td>
             <td>{{ school.plz }}</td>
           </tr>
           <tr v-if="!filteredAndSortedSchools.length">
-            <td colspan="4">Keine Schulen gefunden.</td>
+            <td colspan="5">Keine Schulen gefunden.</td>
           </tr>
         </tbody>
       </table>
@@ -478,5 +614,36 @@ button.danger:active,
   color: #6c757d;
   font-size: 0.9rem;
   white-space: nowrap;
+}
+
+.school-header-actions {
+  margin-bottom: 1rem;
+}
+
+.school-header-actions button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.school-actions-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  background-color: rgba(108, 117, 125, 0.05);
+  border-radius: 8px;
+}
+
+.school-actions-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+}
+
+input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
 }
 </style>

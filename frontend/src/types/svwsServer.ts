@@ -28,4 +28,5 @@ export interface SvwsSchoolInfo {
   name: string;
   ort: string;
   plz: string;
+  _uid?: string; // Frontend-generated unique ID
 }

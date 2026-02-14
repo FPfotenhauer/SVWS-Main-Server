@@ -72,7 +72,11 @@ export const useSvwsServersStore = defineStore("svwsServers", {
         console.log("Store: Making API call to /api/svws-servers/" + serverId + "/schools");
         const response = await api.get<SvwsSchoolInfo[]>(`/api/svws-servers/${serverId}/schools`);
         console.log("Store: API response:", response.data);
-        this.schools = response.data;
+        // Add unique IDs to each school
+        this.schools = response.data.map((school, index) => ({
+          ...school,
+          _uid: `${serverId}-${index}-${Date.now()}`
+        }));
         this.selectedServer = this.servers.find(s => s.id === serverId) || null;
         console.log("Store: selectedServer set to:", this.selectedServer?.name);
       } catch (err) {
