@@ -1,0 +1,7 @@
+services:
+  reverse-proxy:
+    ports:
+      - "9443:9443"
+    volumes:
+      - ./docker/nginx.tls.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/certs:/etc/nginx/certs:ro
