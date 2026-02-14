@@ -11,6 +11,26 @@ Dies ist ein Multi-Tenant-Server zur Verwaltung von SVWS-Instanzen mit:
 - **Authentifizierung**: OIDC oder Passwort-basiert
 - **Infrastruktur**: Docker Compose mit Nginx Reverse Proxy
 
+## Features
+
+### SVWS Server Verwaltung
+- **Server hinzufügen**: SVWS-Server mit Name, Base URL, Port und Zugangsdaten registrieren
+- **Verbindungstests**: Automatisches Testen der Serververbindung mit Statusanzeige
+- **Verschlüsselte Passwörter**: Passwörter werden verschlüsselt in der Datenbank gespeichert (AES-GCM)
+- **SSL-Unterstützung**: Automatische Verbindung zu SVWS-Servern mit selbstsignierten Zertifikaten
+- **Status-Tracking**: Visualisierung des Verbindungsstatus (UNTESTED, CONNECTED, ERROR)
+
+### Schul-Verwaltung
+- **Schulliste abrufen**: Automatischer Abruf der Schulliste von registrierten SVWS-Servern
+- **Sortierung**: Sortierung nach Schulnummer oder Name (aufsteigend/absteigend)
+- **Suchfunktion**: Live-Suche nach Schulnummer oder Name
+
+### Benutzeroberfläche
+- **Sortierbare Listen**: Server und Schulen können nach verschiedenen Kriterien sortiert werden
+- **Suchfunktionen**: Filterung von Servern (Name, Base URL) und Schulen (Schulnummer, Name)
+- **Kompaktes Design**: Optimierte Nutzung des Bildschirmplatzes
+- **Icon-Buttons**: Intuitive Bedienung mit Tooltips
+
 ## Voraussetzungen
 
 - Docker und Docker Compose
@@ -46,8 +66,14 @@ OIDC_CLIENT_ID=             # Falls OIDC verwendet wird
 OIDC_CLIENT_SECRET=         # Falls OIDC verwendet wird
 
 # JWT für Passwort-Authentifizierung
-JWT_SIGN_KEY=ovlIqW7FpNGuHcGKCF8jZ75GXnjhWFYmPO9DyTL4iFo=
+JWT_SIGN_KEY=<your-jwt-secret-key>  # Generiere einen zufälligen Base64-String
+
+# SVWS Server Verwaltung
+SVWS_PASSWORD_KEY=<your-32-char-key>  # 32-Zeichen Schlüssel für AES-GCM Verschlüsselung
+SVWS_TRUST_ALL=true          # Für Entwicklung: Akzeptiert selbstsignierte SSL-Zertifikate
 ```
+
+**Wichtig**: Generiere eigene sichere Schlüssel für Produktion! Verwende niemals die Beispielwerte.
 
 ### 3. Container starten
 
@@ -56,6 +82,27 @@ docker compose up --build
 ```
 
 Die Anwendung ist dann unter **http://localhost:8081** erreichbar.
+
+### 4. SVWS-Server verwalten
+
+Nach dem Login kannst du SVWS-Server hinzufügen und verwalten:
+
+1. **Server hinzufügen**: 
+   - Klicke auf "Neuer SVWS-Server"
+   - Gib Name, Base URL, Port und Zugangsdaten ein
+   - Die Verbindung wird automatisch getestet
+
+2. **Schulen abrufen**:
+   - Klicke auf das Schulgebäude-Symbol neben einem Server
+   - Die Schulliste wird automatisch vom SVWS-Server abgerufen
+
+3. **Listen durchsuchen**:
+   - Verwende die Suchfelder, um Server oder Schulen zu filtern
+   - Klicke auf Spaltenüberschriften zum Sortieren
+
+4. **Verbindung testen**:
+   - Klicke auf das Uhr-Symbol, um die Verbindung zu testen
+   - Status wird automatisch aktualisiert (CONNECTED, ERROR, etc.)
 
 ## Authentifizierung
 
@@ -135,11 +182,44 @@ Neue Migration erstellen:
 
 ## API-Endpoints
 
+### Authentifizierung
+
 | Methode | Endpoint | Beschreibung | Auth |
 |---------|----------|-------------|------|
 | POST | `/api/auth/login` | Benutzer login | Nein |
 | POST | `/api/auth/register` | Benutzer registrieren | Nein |
 | POST | `/api/auth/change-password` | Passwort ändern | Ja |
+
+### SVWS Server Verwaltung
+
+| Methode | Endpoint | Beschreibung | Auth |
+|---------|----------|-------------|------|
+| GET | `/api/svws-servers` | Alle SVWS-Server abrufen | Ja |
+| POST | `/api/svws-servers` | Neuen SVWS-Server anlegen | Ja |
+| GET | `/api/svws-servers/{id}` | SVWS-Server Details abrufen | Ja |
+| PUT | `/api/svws-servers/{id}` | SVWS-Server aktualisieren | Ja |
+| DELETE | `/api/svws-servers/{id}` | SVWS-Server löschen | Ja |
+| POST | `/api/svws-servers/{id}/test-connection` | Verbindung testen und Status aktualisieren | Ja |
+| GET | `/api/svws-servers/{id}/schools` | Schulliste vom SVWS-Server abrufen | Ja |
+
+**Beispiel: SVWS-Server anlegen**
+```bash
+curl -X POST http://localhost:8081/api/svws-servers \
+  -H "Authorization: Bearer <JWT-TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "SVWS Produktiv",
+    "baseUrl": "https://svws.example.com:8443",
+    "username": "your-username",
+    "password": "your-password"
+  }'
+```
+
+**Beispiel: Schulliste abrufen**
+```bash
+curl -X GET http://localhost:8081/api/svws-servers/1/schools \
+  -H "Authorization: Bearer <JWT-TOKEN>"
+```
 
 ## Hinweise
 
@@ -147,6 +227,14 @@ Neue Migration erstellen:
 - Für produktive Nutzung müssen OIDC-Variablen gesetzt werden.
 - Das `.env` File wird nicht versioniert (siehe `.gitignore`) - jeder Developer braucht eine lokale Kopie.
 - `.vscode/` wird ebenfalls ignoriert - IDE-Konfigurationen sind persönlich.
+
+### Sicherheitshinweise
+
+- **Passwort-Verschlüsselung**: SVWS-Server Passwörter werden mit AES-GCM verschlüsselt
+- **SSL-Zertifikate**: `SVWS_TRUST_ALL=true` sollte nur in Entwicklung verwendet werden
+- **Produktivbetrieb**: In Produktion sollte `SVWS_TRUST_ALL=false` gesetzt und echte SSL-Zertifikate verwendet werden
+- **Umgebungsvariablen**: Speichere niemals sensible Daten im Source Code - verwende `.env`
+- **JWT-Schlüssel**: Verwende einen starken, zufälligen JWT-Schlüssel für Produktion
 
 ## TLS lokal (optional)
 
@@ -185,6 +273,19 @@ Aufruf: **https://localhost:9443**
 - Stelle sicher, dass der Token nicht abgelaufen ist
 - Überprüfe, dass `JWT_SIGN_KEY` korrekt in `.env` gesetzt ist
 - Bei Mismatch neu bauen: `docker compose up --build`
+
+### SVWS-Server Verbindungsfehler
+
+- **SSL-Zertifikat nicht vertrauenswürdig**: Setze `SVWS_TRUST_ALL=true` in `.env` für Entwicklung
+- **Connection refused**: Überprüfe, dass der SVWS-Server erreichbar ist und der Port korrekt ist
+- **Authentication failed**: Überprüfe Benutzername und Passwort des SVWS-Servers
+- **Docker Networking**: Bei lokalen SVWS-Servern verwende die Host-IP (z.B. 192.168.2.16) statt localhost
+
+### Passwort-Verschlüsselung Fehler
+
+- Stelle sicher, dass `SVWS_PASSWORD_KEY` in `.env` gesetzt ist (32 Zeichen)
+- Bei Änderung des Schlüssels können alte Passwörter nicht mehr entschlüsselt werden
+- Backend neu bauen nach Umgebungsänderungen: `docker compose up --build`
 
 ## Weitere Ressourcen
 

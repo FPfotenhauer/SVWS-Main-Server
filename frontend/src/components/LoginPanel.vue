@@ -63,8 +63,8 @@ const handlePasswordLogin = async () => {
 <style scoped>
 .panel {
   max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
+  margin: 1.5rem auto;
+  padding: 1.5rem;
   border: 1px solid var(--accent);
   border-radius: 8px;
   background: var(--bg);
@@ -73,21 +73,22 @@ const handlePasswordLogin = async () => {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .form-group label {
   font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .form-group input {
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--accent);
   border-radius: 4px;
   background: var(--bg);
@@ -101,7 +102,8 @@ const handlePasswordLogin = async () => {
 }
 
 button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1.5rem;
+  margin-top: 0.25rem;
   background: var(--accent);
   color: var(--bg);
   border: none;
@@ -122,7 +124,7 @@ button:disabled {
 }
 
 .helper {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   font-size: 0.875rem;
   color: var(--accent-2);
 }

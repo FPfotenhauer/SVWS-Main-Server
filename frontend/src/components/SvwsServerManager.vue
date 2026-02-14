@@ -5,6 +5,13 @@ import type { SvwsServerRequest } from "../types/svwsServer";
 
 const store = useSvwsServersStore();
 const showForm = ref(false);
+const sortBy = ref<'name' | 'baseUrl'>('name');
+const sortDirection = ref<'asc' | 'desc'>('asc');
+const schoolSortBy = ref<'schulnummer' | 'name'>('schulnummer');
+const schoolSortDirection = ref<'asc' | 'desc'>('asc');
+const schoolSearchQuery = ref('');
+const serverSearchQuery = ref('');
+
 const form = ref({
   name: "",
   url: "",
@@ -18,6 +25,82 @@ const statusClass = (status: string) => {
   if (status === "UNTESTED") return "warn";
   if (status === "INVALID_CREDENTIALS" || status === "UNREACHABLE" || status === "ERROR") return "error";
   return "";
+};
+
+const filteredAndSortedServers = computed(() => {
+  let servers = [...store.servers];
+  
+  // Filter by search query
+  if (serverSearchQuery.value) {
+    const query = serverSearchQuery.value.toLowerCase();
+    servers = servers.filter(server => {
+      const name = server.name?.toLowerCase() || '';
+      const baseUrl = server.baseUrl?.toLowerCase() || '';
+      return name.includes(query) || baseUrl.includes(query);
+    });
+  }
+  
+  // Sort
+  servers.sort((a, b) => {
+    let aVal = a[sortBy.value];
+    let bVal = b[sortBy.value];
+    
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+    
+    if (aVal < bVal) return sortDirection.value === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+  
+  return servers;
+});
+
+const filteredAndSortedSchools = computed(() => {
+  let schools = [...store.schools];
+  
+  // Filter by search query
+  if (schoolSearchQuery.value) {
+    const query = schoolSearchQuery.value.toLowerCase();
+    schools = schools.filter(school => {
+      const schulnummer = school.schulnummer?.toString().toLowerCase() || '';
+      const name = school.name?.toLowerCase() || '';
+      return schulnummer.includes(query) || name.includes(query);
+    });
+  }
+  
+  // Sort
+  schools.sort((a, b) => {
+    let aVal = a[schoolSortBy.value];
+    let bVal = b[schoolSortBy.value];
+    
+    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+    
+    if (aVal < bVal) return schoolSortDirection.value === 'asc' ? -1 : 1;
+    if (aVal > bVal) return schoolSortDirection.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+  
+  return schools;
+});
+
+const toggleSort = (column: 'name' | 'baseUrl') => {
+  if (sortBy.value === column) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortBy.value = column;
+    sortDirection.value = 'asc';
+  }
+};
+
+const toggleSchoolSort = (column: 'schulnummer' | 'name') => {
+  if (schoolSortBy.value === column) {
+    schoolSortDirection.value = schoolSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    schoolSortBy.value = column;
+    schoolSortDirection.value = 'asc';
+  }
 };
 
 const canCreate = computed(() =>
@@ -111,19 +194,40 @@ onMounted(() => {
         <p v-if="store.error" class="error-text">{{ store.error }}</p>
       </div>
 
+      <!-- Search Box -->
+      <div class="search-box">
+        <input 
+          v-model="serverSearchQuery" 
+          type="text" 
+          placeholder="Suche nach Name oder Base URL..."
+          class="search-input"
+        />
+        <span class="search-results">{{ filteredAndSortedServers.length }} von {{ store.servers.length }} Servern</span>
+      </div>
+
       <!-- Server Table -->
       <table class="table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Base URL</th>
+            <th class="sortable" @click="toggleSort('name')">
+              Name
+              <span class="sort-indicator" v-if="sortBy === 'name'">
+                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+              </span>
+            </th>
+            <th class="sortable" @click="toggleSort('baseUrl')">
+              Base URL
+              <span class="sort-indicator" v-if="sortBy === 'baseUrl'">
+                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+              </span>
+            </th>
             <th>Benutzername</th>
             <th>Status</th>
             <th>Aktionen</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="server in store.servers" :key="server.id">
+          <tr v-for="server in filteredAndSortedServers" :key="server.id">
             <td>
               <strong>{{ server.name }}</strong>
             </td>
@@ -195,27 +299,50 @@ onMounted(() => {
       <div v-if="store.loadingSchools" class="loading">Laden...</div>
       <div v-else-if="store.error" class="error-text">{{ store.error }}</div>
 
-      <table v-else class="table">
-        <thead>
-          <tr>
-            <th>Schulnummer</th>
-            <th>Name</th>
+      <div v-else>
+        <!-- Search Box -->
+        <div class="search-box">
+          <input 
+            v-model="schoolSearchQuery" 
+            type="text" 
+            placeholder="Suche nach Schulnummer oder Name..."
+            class="search-input"
+          />
+          <span class="search-results">{{ filteredAndSortedSchools.length }} von {{ store.schools.length }} Schulen</span>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="sortable" @click="toggleSchoolSort('schulnummer')">
+              Schulnummer
+              <span class="sort-indicator" v-if="schoolSortBy === 'schulnummer'">
+                {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
+              </span>
+            </th>
+            <th class="sortable" @click="toggleSchoolSort('name')">
+              Name
+              <span class="sort-indicator" v-if="schoolSortBy === 'name'">
+                {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
+              </span>
+            </th>
             <th>Ort</th>
             <th>PLZ</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="school in store.schools" :key="school.schulnummer">
+          <tr v-for="school in filteredAndSortedSchools" :key="school.schulnummer">
             <td><strong>{{ school.schulnummer }}</strong></td>
             <td>{{ school.name }}</td>
             <td>{{ school.ort }}</td>
             <td>{{ school.plz }}</td>
           </tr>
-          <tr v-if="!store.schools.length">
+          <tr v-if="!filteredAndSortedSchools.length">
             <td colspan="4">Keine Schulen gefunden.</td>
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
   </div>
 </template>
@@ -288,5 +415,48 @@ button.danger:hover,
 .icon-button.danger:hover {
   background-color: #c82333;
   transform: translateY(-1px);
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.sortable:hover {
+  background-color: rgba(108, 117, 125, 0.1);
+}
+
+.sort-indicator {
+  margin-left: 0.25rem;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.search-results {
+  color: #6c757d;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 </style>
