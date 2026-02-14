@@ -38,7 +38,11 @@ const createServer = async () => {
       username: form.value.username,
       password: form.value.password
     };
-    await store.createServer(serverRequest);
+    const server = await store.createServer(serverRequest);
+    
+    // Test connection after creating
+    await store.testConnection(server.id);
+    
     form.value = {
       name: "",
       url: "",
@@ -59,6 +63,14 @@ const viewSchools = async (serverId: string) => {
     console.log("Schools loaded successfully");
   } catch (err) {
     console.error("Error loading schools:", err);
+  }
+};
+
+const testConnection = async (serverId: string) => {
+  try {
+    await store.testConnection(serverId);
+  } catch (err) {
+    console.error("Error testing connection:", err);
   }
 };
 
@@ -124,12 +136,41 @@ onMounted(() => {
               <div class="helper" v-if="server.lastError">{{ server.lastError }}</div>
             </td>
             <td>
-              <button class="secondary" type="button" @click="viewSchools(server.id)">
-                Schulen anzeigen
-              </button>
-              <button class="danger" type="button" @click="deleteServer(server.id)">
-                Löschen
-              </button>
+              <div class="action-buttons">
+                <button 
+                  class="icon-button secondary" 
+                  type="button" 
+                  @click="testConnection(server.id)"
+                  title="Verbindung testen">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 6v6l4 2"></path>
+                  </svg>
+                </button>
+                <button 
+                  class="icon-button secondary" 
+                  type="button" 
+                  @click="viewSchools(server.id)"
+                  title="Schulen anzeigen">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                </button>
+                <button 
+                  class="icon-button danger" 
+                  type="button" 
+                  @click="deleteServer(server.id)"
+                  title="Löschen">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="!store.servers.length">
@@ -202,12 +243,50 @@ onMounted(() => {
   color: #666;
 }
 
-button.danger {
-  background-color: #dc3545;
-  color: white;
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-button.danger:hover {
+.icon-button {
+  padding: 0.5rem;
+  min-width: unset;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-button svg {
+  display: block;
+}
+
+.icon-button.secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+}
+
+.icon-button.secondary:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+button.danger,
+.icon-button.danger {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+button.danger:hover,
+.icon-button.danger:hover {
   background-color: #c82333;
+  transform: translateY(-1px);
 }
 </style>

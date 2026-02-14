@@ -35,6 +35,21 @@ export const useSvwsServersStore = defineStore("svwsServers", {
         throw err;
       }
     },
+    async testConnection(id: string) {
+      this.error = "";
+      try {
+        const response = await api.post<SvwsServer>(`/api/svws-servers/${id}/test-connection`);
+        // Update the server in the list with the new status
+        const index = this.servers.findIndex(s => s.id === id);
+        if (index !== -1) {
+          this.servers[index] = response.data;
+        }
+        return response.data;
+      } catch (err) {
+        this.error = err instanceof Error ? err.message : "Failed to test connection";
+        throw err;
+      }
+    },
     async deleteServer(id: string) {
       this.error = "";
       try {

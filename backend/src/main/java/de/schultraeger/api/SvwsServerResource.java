@@ -86,6 +86,40 @@ public class SvwsServerResource {
         return Response.noContent().build();
     }
 
+    @POST
+    @Path("/{id}/test-connection")
+    public Response testConnection(@PathParam("id") UUID id) {
+        try {
+            SvwsServer server = service.findById(id)
+                .orElseThrow(() -> new NotFoundException("SVWS server not found"));
+
+            String password = passwordCipher.decrypt(server.passwordEncrypted());
+            boolean isConnected = svwsClient.isPrivileged(
+                server.baseUrl(),
+                server.username(),
+                password
+            );
+
+            SvwsServer updated;
+            if (isConnected) {
+                updated = service.updateStatus(id, ServerStatus.CONNECTED, null);
+            } else {
+                updated = service.updateStatus(id, ServerStatus.ERROR, "Not privileged or authentication failed");
+            }
+
+            return Response.ok(toResponse(updated)).build();
+        } catch (Exception e) {
+            try {
+                SvwsServer updated = service.updateStatus(id, ServerStatus.ERROR, e.getMessage());
+                return Response.ok(toResponse(updated)).build();
+            } catch (Exception ignored) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
+            }
+        }
+    }
+
     @GET
     @Path("/{id}/schools")
     public Response listSchools(@PathParam("id") UUID id) {
