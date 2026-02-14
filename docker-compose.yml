@@ -26,6 +26,9 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       JWT_SIGN_KEY: ${JWT_SIGN_KEY:-}
       SVWS_PASSWORD_KEY: ${SVWS_PASSWORD_KEY:-}
+      SVWS_TRUST_ALL: ${SVWS_TRUST_ALL:-false}
+    extra_hosts:
+      - "svws-server:172.17.0.1"
     depends_on:
       - database
 

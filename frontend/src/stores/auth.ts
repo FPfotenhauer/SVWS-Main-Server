@@ -39,11 +39,6 @@ export const useAuthStore = defineStore("auth", {
         const { accessToken } = response.data;
         this.accessToken = accessToken;
         setAccessToken(accessToken);
-        
-        // Check if this is the default admin user (first login)
-        if (username === "admin") {
-          this.requiresPasswordChange = true;
-        }
       } catch (err) {
         this.error = err instanceof Error ? err.message : "Login failed";
         throw err;

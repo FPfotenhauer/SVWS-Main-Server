@@ -163,8 +163,8 @@ public class SchuleService {
 
             Schule updated = new Schule(
                     existing.id(),
-                    info.bezeichnung() != null ? info.bezeichnung() : existing.name(),
-                    info.schulNr(),
+                    info.name() != null ? info.name() : existing.name(),
+                    info.schulnummer(),
                     existing.svwsUrl(),
                     existing.svwsSchema(),
                     existing.svwsUsername(),

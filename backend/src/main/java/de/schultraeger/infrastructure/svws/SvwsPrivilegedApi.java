@@ -1,11 +1,13 @@
 package de.schultraeger.infrastructure.svws;
 
+import de.schultraeger.application.dto.SchemaListeEintrag;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import java.util.List;
 
 /**
  * Minimal SVWS privileged API subset used in the MVP.
@@ -21,4 +23,10 @@ public interface SvwsPrivilegedApi {
     @Path("/schema/liste/info/{schema}/schule")
     @Produces(MediaType.APPLICATION_JSON)
     SvwsSchuleInfo getSchuleInfo(@PathParam("schema") String schema);
+
+    @GET
+    @Path("/schema/liste/svws")
+    @Produces(MediaType.APPLICATION_JSON)
+    List<SchemaListeEintrag> listSchemas();
 }
+

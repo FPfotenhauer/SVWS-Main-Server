@@ -160,6 +160,11 @@ class SchuleServiceTest {
         public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) {
             throw new SvwsClientException("Unauthorized", 403);
         }
+
+        @Override
+        public java.util.List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+            return java.util.Collections.emptyList();
+        }
     }
 
     private static class SuccessSvwsClient implements SvwsClient {
@@ -170,7 +175,12 @@ class SchuleServiceTest {
 
         @Override
         public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) {
-            return new SvwsSchuleInfo(123456L, "Staedt. Gymnasium");
+            return new SvwsSchuleInfo(123456L, "Staedt. Gymnasium", "12345", "Teststadt");
+        }
+
+        @Override
+        public java.util.List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+            return java.util.Collections.emptyList();
         }
     }
 }

@@ -5,28 +5,38 @@ import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.jboss.logging.Logger;
 
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 /**
- * REST client adapter for the SVWS privileged API.
+ * REST client adapter for the SVWS privileged API using Java HttpClient.
  */
 @ApplicationScoped
 public class SvwsClientRest implements SvwsClient {
+    private static final Logger log = Logger.getLogger(SvwsClientRest.class);
+    
     private final boolean trustAll;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public SvwsClientRest(@ConfigProperty(name = "svws.client.trust-all", defaultValue = "false") boolean trustAll) {
         this.trustAll = trustAll;
+        if (trustAll) {
+            log.warn("SVWS client configured to trust all SSL certificates - this should only be used in development!");
+        }
     }
 
     SvwsClientRest(boolean trustAll, boolean testMode) {
@@ -35,61 +45,122 @@ public class SvwsClientRest implements SvwsClient {
 
     @Override
     public boolean isPrivileged(String baseUrl, String username, String password) {
-        SvwsPrivilegedApi client = buildClient(baseUrl, username, password);
+        HttpClient client = buildHttpClient();
         try {
-            return client.isPrivilegedUser();
-        } catch (WebApplicationException ex) {
-            int status = statusOf(ex.getResponse());
-            if (status == 403) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/privileged/user/isprivileged"))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200) {
+                return Boolean.parseBoolean(response.body());
+            } else if (response.statusCode() == 403) {
                 return false;
             }
-            throw new SvwsClientException("SVWS isPrivileged failed", status, ex);
+            throw new SvwsClientException("SVWS isPrivileged failed", response.statusCode(), null);
+        } catch (Exception ex) {
+            throw new SvwsClientException("SVWS isPrivileged failed", -1, ex);
         }
     }
 
     @Override
     public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) {
-        SvwsPrivilegedApi client = buildClient(baseUrl, username, password);
+        HttpClient client = buildHttpClient();
         try {
-            return client.getSchuleInfo(schema);
-        } catch (WebApplicationException ex) {
-            int status = statusOf(ex.getResponse());
-            throw new SvwsClientException("SVWS getSchuleInfo failed", status, ex);
+            String url = baseUrl + "/api/schema/liste/info/" + schema + "/schule";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200) {
+                return objectMapper.readValue(response.body(), SvwsSchuleInfo.class);
+            }
+            log.warnf("SVWS getSchuleInfo failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS getSchuleInfo failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS getSchuleInfo failed for schema %s", schema);
+            throw new SvwsClientException("SVWS getSchuleInfo failed", -1, ex);
         }
     }
 
-    private SvwsPrivilegedApi buildClient(String baseUrl, String username, String password) {
-        RestClientBuilder builder = RestClientBuilder.newBuilder()
-                .baseUri(URI.create(baseUrl))
-                .register(new BasicAuthFilter(username, password));
-
-        if (trustAll) {
-            builder.sslContext(trustAllSslContext()).hostnameVerifier((host, session) -> true);
+    @Override
+    public java.util.List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+        HttpClient client = buildHttpClient();
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/schema/liste/svws"))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() != 200) {
+                log.warnf("SVWS listSchools failed with status %d", response.statusCode());
+                throw new SvwsClientException("SVWS listSchools failed with status " + response.statusCode(), response.statusCode(), null);
+            }
+            
+            java.util.List<de.schultraeger.application.dto.SchemaListeEintrag> schemas = 
+                    objectMapper.readValue(response.body(), new TypeReference<java.util.List<de.schultraeger.application.dto.SchemaListeEintrag>>() {});
+            
+            log.debugf("Found %d SVWS schemas, filtering and fetching school info", schemas.size());
+            
+            return schemas.stream()
+                .filter(schema -> Boolean.TRUE.equals(schema.isSVWS()))
+                .filter(schema -> !Boolean.TRUE.equals(schema.isTainted()))
+                .filter(schema -> !Boolean.TRUE.equals(schema.isDeactivated()))
+                .map(schema -> {
+                    try {
+                        return getSchuleInfo(baseUrl, schema.name(), username, password);
+                    } catch (Exception ex) {
+                        log.warnf("Failed to get info for schema %s: %s", schema.name(), ex.getMessage());
+                        return null;
+                    }
+                })
+                .filter(info -> info != null)
+                .toList();
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS listSchools failed");
+            throw new SvwsClientException("SVWS listSchools failed", -1, ex);
         }
-
-        return builder.build(SvwsPrivilegedApi.class);
     }
 
-    private int statusOf(Response response) {
-        if (response == null) {
-            return -1;
+    private HttpClient buildHttpClient() {
+        try {
+            HttpClient.Builder builder = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(30))
+                    .followRedirects(HttpClient.Redirect.NORMAL);
+            
+            if (trustAll) {
+                SSLContext sslContext = trustAllSslContext();
+                builder.sslContext(sslContext);
+                
+                // Also set system properties to disable hostname verification
+                System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+                System.setProperty("jdk.tls.client.disableHostnameVerification", "true");
+            }
+            
+            return builder.build();
+        } catch (Exception ex) {
+            log.errorf(ex, "Failed to build HTTP client");
+            throw new IllegalStateException("Failed to build HTTP client: " + ex.getMessage(), ex);
         }
-        return response.getStatus();
     }
 
-    private static class BasicAuthFilter implements jakarta.ws.rs.client.ClientRequestFilter {
-        private final String headerValue;
-
-        BasicAuthFilter(String username, String password) {
-            String token = username + ":" + password;
-            String encoded = Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
-            this.headerValue = "Basic " + encoded;
-        }
-
-        @Override
-        public void filter(jakarta.ws.rs.client.ClientRequestContext requestContext) {
-            requestContext.getHeaders().putSingle("Authorization", headerValue);
-        }
+    private String basicAuth(String username, String password) {
+        String token = username + ":" + password;
+        String encoded = Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8));
+        return "Basic " + encoded;
     }
 
     private SSLContext trustAllSslContext() {
@@ -113,6 +184,7 @@ public class SvwsClientRest implements SvwsClient {
             context.init(null, trustAllManagers, new java.security.SecureRandom());
             return context;
         } catch (Exception ex) {
+            log.errorf(ex, "Failed to configure trust-all SSL");
             throw new IllegalStateException("Failed to configure trust-all SSL", ex);
         }
     }

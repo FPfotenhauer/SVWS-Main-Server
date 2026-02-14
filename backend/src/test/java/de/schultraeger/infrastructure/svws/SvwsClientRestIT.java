@@ -26,6 +26,6 @@ class SvwsClientRestIT {
 
         SvwsSchuleInfo info = client.getSchuleInfo(baseUrl, schema, username, password);
         assertNotNull(info);
-        assertNotNull(info.bezeichnung());
+        assertNotNull(info.name());
     }
 }
