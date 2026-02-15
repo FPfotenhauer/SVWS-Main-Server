@@ -42,6 +42,48 @@
         <h3>IDM Verwaltung</h3>
         <p>Identitäts- und Zugriffsverwaltung</p>
       </div>
+
+      <!-- Benutzer verwalten -->
+      <div class="dashboard-tile">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <h3>Benutzer verwalten</h3>
+        <p>Verwaltung von Benutzern und deren Rollen</p>
+      </div>
+
+      <!-- Schulkatalog NRW -->
+      <div class="dashboard-tile">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path>
+            <line x1="10" y1="5" x2="10" y2="17"></line>
+            <line x1="14" y1="5" x2="14" y2="17"></line>
+          </svg>
+        </div>
+        <h3>Schulkatalog NRW</h3>
+        <p>Zugriff auf den Schulkatalog von Nordrhein-Westfalen</p>
+      </div>
+
+      <!-- Support -->
+      <div class="dashboard-tile">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <circle cx="9" cy="10" r="1"></circle>
+            <circle cx="12" cy="10" r="1"></circle>
+            <circle cx="15" cy="10" r="1"></circle>
+          </svg>
+        </div>
+        <h3>Support</h3>
+        <p>Kontaktieren Sie unser Support-Team</p>
+      </div>
     </div>
   </div>
 </template>
@@ -64,7 +106,7 @@ const navigateToServerManagement = () => {
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+  gap: 1.5rem;
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -73,16 +115,16 @@ const navigateToServerManagement = () => {
   background: #1f2937;
   border: 1px solid #374151;
   border-radius: 12px;
-  padding: 2rem;
+  padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
-  min-height: 200px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .dashboard-tile:hover {
@@ -120,12 +162,12 @@ const navigateToServerManagement = () => {
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .dashboard-tile {
-    padding: 1.5rem;
-    min-height: 180px;
+    padding: 1.25rem;
+    min-height: 140px;
   }
 }
 </style>
