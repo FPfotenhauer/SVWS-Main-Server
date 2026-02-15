@@ -75,17 +75,27 @@ public class SchuleService {
         Schule schule = new Schule(
                 id,
                 data.name(),
-                null,
+                null,                           // schulnummer
                 data.svwsUrl(),
                 data.svwsSchema(),
                 data.svwsUsername(),
                 encrypted,
                 SchuleStatus.UNVERIFIED,
-                null,
-                null,
-                null,
+                null,                           // lastSyncAt
+                null,                           // lastSyncStatus
+                null,                           // lastError
                 now,
-                now
+                now,
+                // Address
+                null, null, null, null, null,   // strasse, hausnummer, hausnummerZusatz, plz, ort
+                // Contact
+                null, null, null, null,         // telefon, fax, email, homepage
+                // Administrative
+                null, null, null,               // schulleiter, schulleiterTelefon, schulleiterEmail
+                // Region
+                null, null,                     // kreis, schulamt
+                // Metadata
+                null, null                      // schulnummer2, schulstatus
         );
 
         return repository.save(tenantContext.getTenantId(), schule);
@@ -110,7 +120,23 @@ public class SchuleService {
                 null,
                 null,
                 existing.createdAt(),
-                now
+                now,
+                existing.strasse(),
+                existing.hausnummer(),
+                existing.hausnummerZusatz(),
+                existing.plz(),
+                existing.ort(),
+                existing.telefon(),
+                existing.fax(),
+                existing.email(),
+                existing.homepage(),
+                existing.schulleiter(),
+                existing.schulleiterTelefon(),
+                existing.schulleiterEmail(),
+                existing.kreis(),
+                existing.schulamt(),
+                existing.schulnummer2(),
+                existing.schulstatus()
         );
 
         return repository.update(tenantContext.getTenantId(), updated);
@@ -194,7 +220,28 @@ public class SchuleService {
                     SyncStatus.SUCCESS,
                     null,
                     existing.createdAt(),
-                    Instant.now()
+                    Instant.now(),
+                    // Address information
+                    info.strasse(),
+                    info.hausnummer(),
+                    info.hausnummerZusatz(),
+                    info.plz(),
+                    info.ort(),
+                    // Contact information
+                    info.telefon(),
+                    info.fax(),
+                    info.email(),
+                    info.homepage(),
+                    // Administrative information
+                    info.schulleiter(),
+                    info.schulleiterTelefon(),
+                    info.schulleiterEmail(),
+                    // Region information
+                    info.kreis(),
+                    info.schulamt(),
+                    // Additional metadata
+                    info.schulnummer2(),
+                    info.schulstatus()
             );
 
             return repository.update(tenantContext.getTenantId(), updated);
@@ -236,7 +283,23 @@ public class SchuleService {
                 lastSyncStatus,
                 lastError,
                 existing.createdAt(),
-                Instant.now()
+                Instant.now(),
+                existing.strasse(),
+                existing.hausnummer(),
+                existing.hausnummerZusatz(),
+                existing.plz(),
+                existing.ort(),
+                existing.telefon(),
+                existing.fax(),
+                existing.email(),
+                existing.homepage(),
+                existing.schulleiter(),
+                existing.schulleiterTelefon(),
+                existing.schulleiterEmail(),
+                existing.kreis(),
+                existing.schulamt(),
+                existing.schulnummer2(),
+                existing.schulstatus()
         );
     }
 

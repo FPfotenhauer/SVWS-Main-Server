@@ -120,7 +120,23 @@ public class SchuleResource {
                 schule.lastSyncStatus(),
                 schule.lastError(),
                 schule.createdAt(),
-                schule.updatedAt()
+                schule.updatedAt(),
+                schule.strasse(),
+                schule.hausnummer(),
+                schule.hausnummerZusatz(),
+                schule.plz(),
+                schule.ort(),
+                schule.telefon(),
+                schule.fax(),
+                schule.email(),
+                schule.homepage(),
+                schule.schulleiter(),
+                schule.schulleiterTelefon(),
+                schule.schulleiterEmail(),
+                schule.kreis(),
+                schule.schulamt(),
+                schule.schulnummer2(),
+                schule.schulstatus()
         );
     }
 }

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useSchulenStore } from "../stores/schulen";
-import type { SchuleRequest } from "../types/schule";
+import type { SchuleRequest, Schule } from "../types/schule";
 import SchoolInfoModal from "./SchoolInfoModal.vue";
 
 const store = useSchulenStore();
 const showInfoModal = ref(false);
-const selectedSchule = ref(null);
+const selectedSchule = ref<Schule | null>(null);
 
 const form = ref<SchuleRequest>({
   name: "",
@@ -48,9 +48,20 @@ const create = async () => {
   };
 };
 
-const showSchoolInfo = (schule: any) => {
+const showSchoolInfo = async (schule: any) => {
   selectedSchule.value = schule;
   showInfoModal.value = true;
+  // Sync the school data when opening the info modal
+  try {
+    await store.sync(schule.id);
+    // Update the selected school with the latest data
+    const updated = store.items.find(s => s.id === schule.id);
+    if (updated) {
+      selectedSchule.value = updated;
+    }
+  } catch (err) {
+    console.error("Failed to sync school:", err);
+  }
 };
 
 onMounted(() => {
