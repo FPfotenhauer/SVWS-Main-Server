@@ -12,6 +12,7 @@ public record SvwsSchuleInfo(
         // Basic identification
         @JsonAlias("schulNr") Long schulnummer,
         @JsonAlias("bezeichnung") String name,
+        String schema,
         
         // Address information
         String plz,

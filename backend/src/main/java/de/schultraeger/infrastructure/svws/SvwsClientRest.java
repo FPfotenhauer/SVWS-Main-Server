@@ -121,7 +121,8 @@ public class SvwsClientRest implements SvwsClient {
                 .filter(schema -> !Boolean.TRUE.equals(schema.isDeactivated()))
                 .map(schema -> {
                     try {
-                        return getSchuleInfo(baseUrl, schema.name(), username, password);
+                        SvwsSchuleInfo info = getSchuleInfo(baseUrl, schema.name(), username, password);
+                        return withSchema(info, schema.name());
                     } catch (Exception ex) {
                         log.warnf("Failed to get info for schema %s: %s", schema.name(), ex.getMessage());
                         return null;
@@ -133,6 +134,39 @@ public class SvwsClientRest implements SvwsClient {
             log.errorf(ex, "SVWS listSchools failed");
             throw new SvwsClientException("SVWS listSchools failed", -1, ex);
         }
+    }
+
+    /**
+     * Creates a new SvwsSchuleInfo with the schema field populated.
+     */
+    private SvwsSchuleInfo withSchema(SvwsSchuleInfo info, String schema) {
+        return new SvwsSchuleInfo(
+                info.schulnummer(),
+                info.name(),
+                schema,
+                info.plz(),
+                info.ort(),
+                info.strasse(),
+                info.hausnummer(),
+                info.hausnummerZusatz(),
+                info.telefon(),
+                info.fax(),
+                info.email(),
+                info.homepage(),
+                info.schulform(),
+                info.schulart(),
+                info.schulgliederung(),
+                info.schulleiter(),
+                info.schulleiterTelefon(),
+                info.schulleiterEmail(),
+                info.kreis(),
+                info.schulamt(),
+                info.staat(),
+                info.schulnummer2(),
+                info.schulstatus(),
+                info.kapitel(),
+                info.satzungsgebendeKommune()
+        );
     }
 
     private HttpClient buildHttpClient() {

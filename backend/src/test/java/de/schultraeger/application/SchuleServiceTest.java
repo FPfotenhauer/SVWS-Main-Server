@@ -178,6 +178,7 @@ class SchuleServiceTest {
             return new SvwsSchuleInfo(
                     Long.valueOf(123456L),     // schulnummer
                     "Staedt. Gymnasium",        // name
+                    schema,                     // schema
                     "12345",                    // plz
                     "Teststadt",                // ort
                     null,                       // strasse

@@ -491,6 +491,7 @@ onMounted(() => {
                 {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
+            <th style="width: 150px;">Schema</th>
             <th style="width: 60px;">Aktionen</th>
           </tr>
         </thead>
@@ -506,6 +507,7 @@ onMounted(() => {
             </td>
             <td style="width: 120px;"><strong>{{ school.schulnummer }}</strong></td>
             <td class="school-name">{{ school.name }}</td>
+            <td style="width: 150px;">{{ school.schema }}</td>
             <td>
               <div class="action-buttons">
                 <button 

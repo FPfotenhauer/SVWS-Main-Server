@@ -34,6 +34,14 @@
               <label>Schulnummer:</label>
               <span>{{ schule.schulnummer || '-' }}</span>
             </div>
+            <div class="info-item">
+              <label>SVWS-Server Base URL:</label>
+              <span>{{ svwsServersStore.selectedServer?.baseUrl || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <label>Schema:</label>
+              <span>{{ schule.schema || '-' }}</span>
+            </div>
             <div v-if="schule.ort" class="info-item">
               <label>Ort:</label>
               <span>{{ schule.ort }}</span>
@@ -80,120 +88,6 @@
         <div v-if="schule.lastError" class="info-section">
           <h3>Letzter Fehler</h3>
           <div class="error-message">{{ schule.lastError }}</div>
-        </div>
-
-        <!-- Synced School Information -->
-        <div class="info-section">
-          <h3>Synchronisierte Schulinformationen</h3>
-          <div v-if="props.schule.lastSyncAt" class="sync-status">
-            Letzter erfolgreicher Sync: {{ formatted(props.schule.lastSyncAt) }}
-          </div>
-          
-          <!-- Basic Information -->
-          <div class="info-subsection">
-            <h4>Grunddaten</h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Schulnummer 1:</label>
-                <span>{{ props.schule.schulnummer || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Schulnummer 2:</label>
-                <span>{{ props.schule.schulnummer2 || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Schulstatus:</label>
-                <span>{{ props.schule.schulstatus || '-' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Address Information -->
-          <div class="info-subsection">
-            <h4>Adresse</h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Straße:</label>
-                <span>{{ props.schule.strasse || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Hausnummer:</label>
-                <span>{{ props.schule.hausnummer || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Hausnummer Zusatz:</label>
-                <span>{{ props.schule.hausnummerZusatz || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>PLZ:</label>
-                <span>{{ props.schule.plz || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Ort:</label>
-                <span>{{ props.schule.ort || '-' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Contact Information -->
-          <div class="info-subsection">
-            <h4>Kontakt</h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Telefon:</label>
-                <span>{{ props.schule.telefon || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Fax:</label>
-                <span>{{ props.schule.fax || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>E-Mail:</label>
-                <span>{{ props.schule.email || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Homepage:</label>
-                <span v-if="props.schule.homepage">
-                  <a :href="props.schule.homepage" target="_blank" rel="noopener noreferrer">{{ props.schule.homepage }}</a>
-                </span>
-                <span v-else>-</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- School Leadership -->
-          <div class="info-subsection">
-            <h4>Schulleitung</h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Schulleiter/in:</label>
-                <span>{{ props.schule.schulleiter || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Telefon:</label>
-                <span>{{ props.schule.schulleiterTelefon || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>E-Mail:</label>
-                <span>{{ props.schule.schulleiterEmail || '-' }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Administrative Information -->
-          <div class="info-subsection">
-            <h4>Verwaltung & Region</h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Kreis:</label>
-                <span>{{ props.schule.kreis || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Schulamt:</label>
-                <span>{{ props.schule.schulamt || '-' }}</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div class="info-section">
@@ -356,6 +250,7 @@
 import { ref, watch, computed } from "vue";
 import api from "../services/api";
 import { useSchulenStore } from "../stores/schulen";
+import { useSvwsServersStore } from "../stores/svwsServers";
 
 const emit = defineEmits<{
   close: [];
@@ -367,6 +262,7 @@ const props = defineProps<{
 }>();
 
 const store = useSchulenStore();
+const svwsServersStore = useSvwsServersStore();
 const svwsInfo = ref<any>(null);
 const loadingSvwsInfo = ref(false);
 const svwsInfoError = ref<string | null>(null);
