@@ -1,9 +1,10 @@
 <template>
-  <div class="modal-overlay" v-if="visible">
+  <div class="modal-overlay" v-if="visible || requiresPasswordChange">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Change Default Password</h2>
-        <p class="text-muted">You are using the default password. Please change it for security reasons.</p>
+        <h2>{{ requiresPasswordChange ? 'Change Default Password' : 'Change Password' }}</h2>
+        <button v-if="!requiresPasswordChange" class="close-btn" @click="closeModal">&times;</button>
+        <p class="text-muted">{{ requiresPasswordChange ? 'You are using the default password. Please change it for security reasons.' : 'Enter your current and new password.' }}</p>
       </div>
 
       <form @submit.prevent="handleChangePassword">
@@ -65,6 +66,18 @@
 import { ref, computed } from "vue";
 import { useAuthStore } from "../stores/auth";
 
+interface Props {
+  visible?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  visible: false,
+});
+
+const emit = defineEmits<{
+  close: [];
+}>();
+
 const authStore = useAuthStore();
 const currentPassword = ref("");
 const newPassword = ref("");
@@ -73,7 +86,7 @@ const errorMessage = ref("");
 const successMessage = ref("");
 
 const isLoading = computed(() => authStore.isLoading);
-const visible = computed(() => authStore.requiresPasswordChange);
+const requiresPasswordChange = computed(() => authStore.requiresPasswordChange);
 
 async function handleChangePassword() {
   errorMessage.value = "";
@@ -98,12 +111,17 @@ async function handleChangePassword() {
     
     // Close modal after 2 seconds
     setTimeout(() => {
-      errorMessage.value = "";
-      successMessage.value = "";
+      if (!requiresPasswordChange.value) {
+        emit('close');
+      }
     }, 2000);
   } catch {
     errorMessage.value = authStore.error || "Failed to change password";
   }
+}
+
+function closeModal() {
+  emit('close');
 }
 </script>
 
@@ -114,7 +132,7 @@ async function handleChangePassword() {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(15, 23, 42, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,27 +140,43 @@ async function handleChangePassword() {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
+  background: #111827;
+  border-radius: 16px;
   padding: 30px;
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.45);
 }
 
 .modal-header {
   margin-bottom: 24px;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.close-btn:hover {
+  color: #f8fafc;
 }
 
 .modal-header h2 {
   margin: 0 0 8px 0;
-  color: #333;
+  color: #f8fafc;
   font-size: 20px;
 }
 
 .text-muted {
   margin: 8px 0 0 0;
-  color: #666;
+  color: #94a3b8;
   font-size: 14px;
 }
 
@@ -155,35 +189,37 @@ async function handleChangePassword() {
   margin-bottom: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: #f8fafc;
 }
 
 .form-group input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #1f2937;
   border-radius: 4px;
   font-size: 14px;
+  background: #1f2937;
+  color: #f8fafc;
   box-sizing: border-box;
   transition: border-color 0.2s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
 }
 
 .form-group input:disabled {
-  background-color: #f5f5f5;
+  background-color: #111827;
   cursor: not-allowed;
 }
 
 .error-message {
   padding: 10px;
   margin-bottom: 16px;
-  background-color: #ffebee;
-  color: #c62828;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
   border-radius: 4px;
   font-size: 14px;
 }
@@ -191,8 +227,8 @@ async function handleChangePassword() {
 .success-message {
   padding: 10px;
   margin-bottom: 16px;
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
   border-radius: 4px;
   font-size: 14px;
 }
@@ -206,7 +242,7 @@ async function handleChangePassword() {
 .btn-primary {
   flex: 1;
   padding: 10px 16px;
-  background-color: #4CAF50;
+  background-color: #f97316;
   color: white;
   border: none;
   border-radius: 4px;
@@ -217,11 +253,11 @@ async function handleChangePassword() {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #45a049;
+  background-color: #ea580c;
 }
 
 .btn-primary:disabled {
-  background-color: #cccccc;
+  background-color: #1f2937;
   cursor: not-allowed;
 }
 </style>
