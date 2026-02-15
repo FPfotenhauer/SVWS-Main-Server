@@ -1,0 +1,694 @@
+<template>
+  <div class="schulkatalog-container">
+    <div class="schulkatalog-controls">
+      <div class="search-bar">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Schulname, Ort, Kreis oder Schulnummer eingeben..."
+          @keyup.enter="performSearch"
+          class="search-input"
+        />
+        <button @click="performSearch" class="search-button">
+          Suchen
+        </button>
+        <button @click="resetSearch" class="reset-button">
+          Zurücksetzen
+        </button>
+        <button 
+          v-if="totalSchools === 0 && !loading"
+          @click="loadData"
+          class="load-data-button"
+          title="Laden Sie den Schulkatalog von NRW"
+        >
+          Katalog laden
+        </button>
+      </div>
+
+      <div class="catalog-info">
+        <span v-if="totalSchools">Insgesamt {{ totalSchools }} Schulen | Seite {{ currentPage + 1 }} von {{ totalPages }}</span>
+        <span v-if="loading">Lädt...</span>
+      </div>
+    </div>
+
+    <div class="schulkatalog-content">
+      <div v-if="loading" class="loading">
+        <p>Wird geladen...</p>
+      </div>
+
+      <div v-else-if="error" class="error-message">
+        <strong>Fehler:</strong> {{ error }}
+        <button @click="retryLoad" class="retry-button">Erneut versuchen</button>
+      </div>
+
+      <div v-else-if="schools.length === 0" class="no-results">
+        <p>Keine Schulen gefunden.</p>
+      </div>
+
+      <div v-else class="schools-table-wrapper">
+        <table class="schools-table">
+          <thead>
+            <tr>
+              <th @click="handleSort('schulnummer')" class="sortable-header">Schulnummer {{ sortBy === 'schulnummer' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th @click="handleSort('schulname')" class="sortable-header">Bezeichnung {{ sortBy === 'schulname' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th @click="handleSort('plz')" class="sortable-header">PLZ {{ sortBy === 'plz' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th @click="handleSort('ort')" class="sortable-header">Ort {{ sortBy === 'ort' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th @click="handleSort('schultyp')" class="sortable-header">Schultyp {{ sortBy === 'schultyp' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th @click="handleSort('kreis')" class="sortable-header">Kreis {{ sortBy === 'kreis' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="school in sortedSchools" :key="school.id" class="school-row">
+              <td class="schulnummer">{{ school.schulnummer }}</td>
+              <td class="schulname">{{ school.schulname }}</td>
+              <td class="plz">{{ school.plz }}</td>
+              <td class="ort">{{ school.ort }}</td>
+              <td class="schultyp">{{ school.schultyp }}</td>
+              <td class="kreis">{{ school.kreis }}</td>
+              <td class="aktionen">
+                <button @click="showDetails(school)" class="details-button">Details</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="schools.length > 0" class="pagination">
+        <button
+          @click="previousPage"
+          :disabled="currentPage === 0"
+          class="pagination-button"
+        >
+          Zurück
+        </button>
+
+        <span class="page-info">
+          Seite {{ currentPage + 1 }} von {{ totalPages }}
+        </span>
+
+        <button
+          @click="nextPage"
+          :disabled="currentPage >= totalPages - 1"
+          class="pagination-button"
+        >
+          Weiter
+        </button>
+      </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div v-if="selectedSchool" class="modal-overlay" @click="selectedSchool = null">
+      <div class="modal-content" @click.stop>
+        <button class="close-button" @click="selectedSchool = null">✕</button>
+        <h2>{{ selectedSchool.schulname }}</h2>
+        
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Schulnummer:</label>
+            <span>{{ selectedSchool.schulnummer }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Schultyp:</label>
+            <span>{{ selectedSchool.schultyp || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Adresse:</label>
+            <span v-if="selectedSchool.strasse">{{ selectedSchool.strasse }}, {{ selectedSchool.plz }} {{ selectedSchool.ort }}</span>
+            <span v-else>{{ selectedSchool.plz }} {{ selectedSchool.ort }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Kreis:</label>
+            <span>{{ selectedSchool.kreis || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Schulamt:</label>
+            <span>{{ selectedSchool.schulamt || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Telefon:</label>
+            <span v-if="selectedSchool.telefon">
+              <a :href="`tel:${selectedSchool.telefon}`">{{ selectedSchool.telefon }}</a>
+            </span>
+            <span v-else>—</span>
+          </div>
+          <div class="detail-item">
+            <label>Fax:</label>
+            <span>{{ selectedSchool.fax || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>E-Mail:</label>
+            <span v-if="selectedSchool.email">
+              <a :href="`mailto:${selectedSchool.email}`">{{ selectedSchool.email }}</a>
+            </span>
+            <span v-else>—</span>
+          </div>
+          <div class="detail-item" v-if="selectedSchool.homepage">
+            <label>Website:</label>
+            <span>
+              <a :href="selectedSchool.homepage" target="_blank" rel="noopener noreferrer">
+                Zur Website
+              </a>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { nrwKatalogApi } from '../services/nrwKatalogApi';
+import type { NrwSchulkatalogeintrag } from '../types/nrwSchulkatalog';
+
+const schools = ref<NrwSchulkatalogeintrag[]>([]);
+const searchQuery = ref('');
+const currentPage = ref(0);
+const totalSchools = ref(0);
+const pageSize = 50;
+const loading = ref(false);
+const error = ref('');
+const selectedSchool = ref<NrwSchulkatalogeintrag | null>(null);
+const sortBy = ref<string>('schulnummer');
+const sortDirection = ref<'asc' | 'desc'>('asc');
+
+const sortedSchools = computed(() => schools.value);
+
+const totalPages = computed(() => {
+  return Math.ceil(totalSchools.value / pageSize);
+});
+
+const loadSchools = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    const result = await nrwKatalogApi.getSchools(currentPage.value, pageSize, sortBy.value, sortDirection.value);
+    schools.value = result.schools;
+    totalSchools.value = result.total;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
+    schools.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const performSearch = async () => {
+  currentPage.value = 0;
+  if (searchQuery.value.trim() === '') {
+    await loadSchools();
+  } else {
+    loading.value = true;
+    error.value = '';
+    try {
+      const result = await nrwKatalogApi.searchSchools(searchQuery.value, currentPage.value, pageSize, sortBy.value, sortDirection.value);
+      schools.value = result.schools;
+      totalSchools.value = result.total;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
+      schools.value = [];
+    } finally {
+      loading.value = false;
+    }
+  }
+};
+
+const resetSearch = async () => {
+  searchQuery.value = '';
+  currentPage.value = 0;
+  await loadSchools();
+};
+
+const loadData = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    await nrwKatalogApi.refreshCatalog();
+    // Wait a moment for backend to process
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await loadSchools();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
+    schools.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const nextPage = async () => {
+  currentPage.value++;
+  if (searchQuery.value.trim() !== '') {
+    await performSearch();
+  } else {
+    await loadSchools();
+  }
+};
+
+const previousPage = async () => {
+  if (currentPage.value > 0) {
+    currentPage.value--;
+    if (searchQuery.value.trim() !== '') {
+      await performSearch();
+    } else {
+      await loadSchools();
+    }
+  }
+};
+
+const retryLoad = async () => {
+  if (searchQuery.value.trim() !== '') {
+    await performSearch();
+  } else {
+    await loadSchools();
+  }
+};
+
+const showDetails = (school: NrwSchulkatalogeintrag) => {
+  selectedSchool.value = school;
+};
+
+const handleSort = (column: string) => {
+  if (sortBy.value === column) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortBy.value = column;
+    sortDirection.value = 'asc';
+  }
+  currentPage.value = 0;
+  if (searchQuery.value.trim() !== '') {
+    performSearch();
+  } else {
+    loadSchools();
+  }
+};
+
+// Load initial schools
+loadSchools();
+</script>
+
+<style scoped>
+.schulkatalog-container {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.schulkatalog-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.search-input::placeholder {
+  color: #6b7280;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.search-button, .reset-button, .retry-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-button {
+  background: #f97316;
+  color: white;
+}
+
+.search-button:hover {
+  background: #ea580c;
+}
+
+.reset-button {
+  background: #6b7280;
+  color: white;
+}
+
+.reset-button:hover {
+  background: #4b5563;
+}
+
+.load-data-button {
+  padding: 0.75rem 1.5rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-data-button:hover {
+  background: #059669;
+}
+
+.retry-button {
+  background: #dc2626;
+  color: white;
+  margin-top: 1rem;
+}
+
+.retry-button:hover {
+  background: #b91c1c;
+}
+
+.catalog-info {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.schulkatalog-content {
+  min-height: 400px;
+}
+
+.loading,
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: #fca5a5;
+  margin-bottom: 2rem;
+}
+
+.error-message strong {
+  color: #fecaca;
+}
+
+.schools-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 2rem;
+}
+
+.schools-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.schools-table thead {
+  background: #374151;
+  font-weight: 600;
+}
+
+.schools-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  color: #f8fafc;
+  border-bottom: 1px solid #4b5563;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-header:hover {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.sort-indicator {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #f97316;
+  margin-left: 0.25rem;
+}
+
+.schools-table td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #374151;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.school-row:hover {
+  background: #374151;
+}
+
+.school-row:last-child td {
+  border-bottom: none;
+}
+
+.schulnummer {
+  font-weight: 600;
+  color: #f97316;
+  min-width: 120px;
+}
+
+.schulname {
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.plz {
+  color: #cbd5e1;
+  min-width: 80px;
+}
+
+.ort {
+  color: #cbd5e1;
+  min-width: 150px;
+}
+
+.schultyp {
+  color: #cbd5e1;
+  min-width: 120px;
+}
+
+.kreis {
+  color: #cbd5e1;
+  min-width: 120px;
+}
+
+.aktionen {
+  text-align: center;
+}
+
+.details-button {
+  padding: 0.35rem 0.75rem;
+  background: #1e40af;
+  color: #bfdbfe;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.details-button:hover {
+  background: #1e3a8a;
+  color: white;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: #1f2937;
+  border-radius: 8px;
+}
+
+.pagination-button {
+  padding: 0.5rem 1rem;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  color: #f8fafc;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background: #f97316;
+  border-color: #f97316;
+  color: white;
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover {
+  color: #f8fafc;
+}
+
+.modal-content h2 {
+  margin: 0 0 1.5rem 0;
+  color: #f8fafc;
+  font-size: 1.5rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item label {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-item span {
+  color: #e2e8f0;
+}
+
+.detail-item a {
+  color: #f97316;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.detail-item a:hover {
+  color: #ea580c;
+}
+
+@media (max-width: 768px) {
+  .schulkatalog-container {
+    padding: 1rem;
+  }
+
+  .schulkatalog-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .search-input {
+    min-width: unset;
+  }
+
+  .schools-table {
+    font-size: 0.9rem;
+  }
+
+  .schools-table th,
+  .schools-table td {
+    padding: 0.5rem;
+  }
+
+  .schulnummer,
+  .plz,
+  .ort,
+  .schultyp,
+  .kreis {
+    min-width: unset;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    width: 95%;
+  }
+}
+</style>

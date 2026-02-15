@@ -58,7 +58,7 @@
       </div>
 
       <!-- Schulkatalog NRW -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToSchulkatalog">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -91,10 +91,15 @@
 <script setup lang="ts">
 const emit = defineEmits<{
   navigateToServers: [];
+  navigateToSchulkatalog: [];
 }>();
 
 const navigateToServerManagement = () => {
   emit('navigateToServers');
+};
+
+const navigateToSchulkatalog = () => {
+  emit('navigateToSchulkatalog');
 };
 </script>
 
