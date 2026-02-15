@@ -62,7 +62,7 @@
               <th @click="handleSort('plz')" class="sortable-header">PLZ {{ sortBy === 'plz' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
               <th @click="handleSort('ort')" class="sortable-header">Ort {{ sortBy === 'ort' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
               <th @click="handleSort('schultyp')" class="sortable-header">Schultyp {{ sortBy === 'schultyp' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
-              <th @click="handleSort('kreis')" class="sortable-header">Kreis {{ sortBy === 'kreis' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th>Status</th>
               <th>Aktionen</th>
             </tr>
           </thead>
@@ -73,7 +73,13 @@
               <td class="plz">{{ school.plz }}</td>
               <td class="ort">{{ school.ort }}</td>
               <td class="schultyp">{{ school.schultyp }}</td>
-              <td class="kreis">{{ school.kreis }}</td>
+              <td class="status-cell">
+                <span
+                  class="status-dot"
+                  :class="getStatusClass(school.aufloesung)"
+                  :title="getStatusTooltip(school.aufloesung)"
+                ></span>
+              </td>
               <td class="aktionen">
                 <button @click="showDetails(school)" class="details-button">Details</button>
               </td>
@@ -110,6 +116,12 @@
       <div class="modal-content" @click.stop>
         <button class="close-button" @click="selectedSchool = null">✕</button>
         <h2>{{ selectedSchool.schulname }}</h2>
+
+        <div class="amtsbez-block">
+          <div class="amtsbez-line" v-if="selectedSchool.amtsbez1">{{ selectedSchool.amtsbez1 }}</div>
+          <div class="amtsbez-line" v-if="selectedSchool.amtsbez2">{{ selectedSchool.amtsbez2 }}</div>
+          <div class="amtsbez-line" v-if="selectedSchool.amtsbez3">{{ selectedSchool.amtsbez3 }}</div>
+        </div>
         
         <div class="detail-grid">
           <div class="detail-item">
@@ -137,8 +149,12 @@
             <span>{{ selectedSchool.kreis || '—' }}</span>
           </div>
           <div class="detail-item">
+            <label>Schultraegernr:</label>
+            <span>{{ selectedSchool.schultraegernummer || '—' }}</span>
+          </div>
+          <div class="detail-item">
             <label>Schultraeger:</label>
-            <span>{{ selectedSchool.schulamt || '—' }}</span>
+            <span>{{ selectedSchool.schultraegername || '—' }}</span>
           </div>
           <div class="detail-item">
             <label>Telefon:</label>
@@ -317,6 +333,41 @@ const handleSort = (column: string) => {
   } else {
     loadSchools();
   }
+};
+
+const parseNswDate = (value: string | null): Date | null => {
+  if (!value) return null;
+  const datePart = value.split(' ')[0];
+  const [day, month, year] = datePart.split('.');
+  if (!day || !month || !year) return null;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatDate = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
+const getStatusClass = (aufloesung: string | null) => {
+  const date = parseNswDate(aufloesung);
+  if (!date) return 'status-unknown';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today ? 'status-inactive' : 'status-active';
+};
+
+const getStatusTooltip = (aufloesung: string | null) => {
+  const date = parseNswDate(aufloesung);
+  if (!date) return 'Status unbekannt';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (date < today) {
+    return `Aufgelöst am ${formatDate(date)}`;
+  }
+  return 'Aktiv';
 };
 
 // Load initial schools
@@ -563,6 +614,35 @@ loadSchools();
   min-width: 120px;
 }
 
+.status-cell {
+  text-align: center;
+  min-width: 90px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #6b7280;
+  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.2);
+}
+
+.status-active {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.status-inactive {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.status-unknown {
+  background: #6b7280;
+  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.2);
+}
+
 .aktionen {
   text-align: center;
 }
@@ -670,6 +750,20 @@ loadSchools();
   color: #f8fafc;
   font-size: 1.4rem;
   border-bottom: 2px solid #374151;
+}
+
+.amtsbez-block {
+  margin: 0 0 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.amtsbez-line {
+  line-height: 1.2;
 }
 
 .detail-grid {

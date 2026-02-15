@@ -74,6 +74,7 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
         
         if (data.containsKey("organisationseinheit")) {
             List<Map<String, Object>> orgs = (List<Map<String, Object>>) data.get("organisationseinheit");
+            Map<String, String> orgKurzByNummer = buildOrgKurzByNummer(orgs);
             
             for (Map<String, Object> org : orgs) {
                 try {
@@ -84,6 +85,10 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
                     
                     Map<String, Object> school = new HashMap<>();
                     school.put("schulnummer", schulnummer);
+                    school.put("amtsbez1", org.getOrDefault("amtsbez1", null));
+                    school.put("amtsbez2", org.getOrDefault("amtsbez2", null));
+                    school.put("amtsbez3", org.getOrDefault("amtsbez3", null));
+                    school.put("aufloesung", org.getOrDefault("aufloesung", null));
                     
                     // Extract school name from grunddaten
                     if (org.containsKey("grunddaten")) {
@@ -91,10 +96,15 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
                         school.put("schulname", grunddaten.getOrDefault("kurzbezeichnung", ""));
                         String traegerNummer = toStringOrNull(grunddaten.get("schultraegernummer"));
                         String traegerName = traegerNummer != null ? traegerByKey.get(traegerNummer) : null;
+                        String traegerKurz = traegerNummer != null ? orgKurzByNummer.get(traegerNummer) : null;
                         school.put("schulamt", traegerName);
+                        school.put("schultraegernummer", traegerNummer);
+                        school.put("schultraegername", traegerKurz);
                     } else {
                         school.put("schulname", "");
                         school.put("schulamt", null);
+                        school.put("schultraegernummer", null);
+                        school.put("schultraegername", null);
                     }
                     
                     // Extract address from nested adressen array
@@ -234,6 +244,25 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
             String bezeichnung = toStringOrNull(entry.get("bezeichnung"));
             if (code != null && bezeichnung != null) {
                 map.put(code, bezeichnung);
+            }
+        }
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> buildOrgKurzByNummer(List<Map<String, Object>> orgs) {
+        Map<String, String> map = new HashMap<>();
+        for (Map<String, Object> org : orgs) {
+            String nummer = toStringOrNull(org.get("schulnummer"));
+            if (nummer == null) {
+                continue;
+            }
+            if (org.containsKey("grunddaten")) {
+                Map<String, Object> grunddaten = (Map<String, Object>) org.get("grunddaten");
+                String kurz = toStringOrNull(grunddaten.get("kurzbezeichnung"));
+                if (kurz != null) {
+                    map.put(nummer, kurz);
+                }
             }
         }
         return map;
@@ -393,9 +422,25 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
 
         try (Reader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
             LOG.info("Connected successfully, parsing JSON...");
-            List<Map<String, Object>> result = objectMapper.readValue(reader, new TypeReference<List<Map<String, Object>>>() {});
-            LOG.infov("Successfully fetched {0} records", result.size());
-            return result;
+            Object result = objectMapper.readValue(reader, new TypeReference<Object>() {});
+            if (result instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> list = (List<Map<String, Object>>) result;
+                LOG.infov("Successfully fetched {0} records", list.size());
+                return list;
+            }
+            if (result instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) result;
+                Object katalog = map.get("katalog");
+                if (katalog instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> list = (List<Map<String, Object>>) katalog;
+                    LOG.infov("Successfully fetched {0} records", list.size());
+                    return list;
+                }
+            }
+            throw new IllegalStateException("Unexpected katalog response format");
         } catch (Exception e) {
             LOG.errorv("Failed to fetch from NRW API: {0}", e.getMessage());
             throw e;

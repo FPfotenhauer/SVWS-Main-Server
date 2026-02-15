@@ -11,12 +11,18 @@ public class NrwSchulkatalogeintragMapper {
         return new NrwSchulkatalogeintrag(
                 entity.id,
                 entity.schulnummer,
+            entity.amtsbez1,
+            entity.amtsbez2,
+            entity.amtsbez3,
+                entity.schultraegernummer,
+                entity.schultraegername,
                 entity.schulname,
                 entity.schultyp,
                 entity.strasse,
                 entity.plz,
                 entity.ort,
                 entity.kreis,
+                entity.aufloesung,
                 entity.schulamt,
                 entity.telefon,
                 entity.fax,
@@ -31,12 +37,18 @@ public class NrwSchulkatalogeintragMapper {
         NrwSchulkatalogeintragEntity entity = new NrwSchulkatalogeintragEntity();
         entity.id = domain.id();
         entity.schulnummer = domain.schulnummer();
+        entity.amtsbez1 = domain.amtsbez1();
+        entity.amtsbez2 = domain.amtsbez2();
+        entity.amtsbez3 = domain.amtsbez3();
+        entity.schultraegernummer = domain.schultraegernummer();
+        entity.schultraegername = domain.schultraegername();
         entity.schulname = domain.schulname();
         entity.schultyp = domain.schultyp();
         entity.strasse = domain.strasse();
         entity.plz = domain.plz();
         entity.ort = domain.ort();
         entity.kreis = domain.kreis();
+        entity.aufloesung = domain.aufloesung();
         entity.schulamt = domain.schulamt();
         entity.telefon = domain.telefon();
         entity.fax = domain.fax();

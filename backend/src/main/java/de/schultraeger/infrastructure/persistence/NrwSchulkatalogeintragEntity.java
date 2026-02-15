@@ -22,6 +22,21 @@ public class NrwSchulkatalogeintragEntity {
     @Column(name = "schulnummer", nullable = false, unique = true, length = 50)
     public String schulnummer;
 
+    @Column(name = "amtsbez1", length = 255)
+    public String amtsbez1;
+
+    @Column(name = "amtsbez2", length = 255)
+    public String amtsbez2;
+
+    @Column(name = "amtsbez3", length = 255)
+    public String amtsbez3;
+
+    @Column(name = "schultraegernummer", length = 50)
+    public String schultraegernummer;
+
+    @Column(name = "schultraegername", length = 255)
+    public String schultraegername;
+
     @Column(name = "schulname", nullable = false, length = 255)
     public String schulname;
 
@@ -39,6 +54,9 @@ public class NrwSchulkatalogeintragEntity {
 
     @Column(name = "kreis", length = 100)
     public String kreis;
+
+    @Column(name = "aufloesung", length = 20)
+    public String aufloesung;
 
     @Column(name = "schulamt", length = 255)
     public String schulamt;
