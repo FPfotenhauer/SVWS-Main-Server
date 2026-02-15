@@ -226,8 +226,7 @@ const loadSchools = async () => {
   }
 };
 
-const performSearch = async () => {
-  currentPage.value = 0;
+const executeSearch = async () => {
   if (searchQuery.value.trim() === '') {
     await loadSchools();
   } else {
@@ -244,6 +243,11 @@ const performSearch = async () => {
       loading.value = false;
     }
   }
+};
+
+const performSearch = async () => {
+  currentPage.value = 0;
+  await executeSearch();
 };
 
 const resetSearch = async () => {
@@ -276,11 +280,7 @@ const refreshData = async () => {
     // Wait a moment for backend to process
     await new Promise(resolve => setTimeout(resolve, 1000));
     currentPage.value = 0;
-    if (searchQuery.value.trim() !== '') {
-      await performSearch();
-    } else {
-      await loadSchools();
-    }
+    await executeSearch();
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
   } finally {
@@ -290,30 +290,18 @@ const refreshData = async () => {
 
 const nextPage = async () => {
   currentPage.value++;
-  if (searchQuery.value.trim() !== '') {
-    await performSearch();
-  } else {
-    await loadSchools();
-  }
+  await executeSearch();
 };
 
 const previousPage = async () => {
   if (currentPage.value > 0) {
     currentPage.value--;
-    if (searchQuery.value.trim() !== '') {
-      await performSearch();
-    } else {
-      await loadSchools();
-    }
+    await executeSearch();
   }
 };
 
 const retryLoad = async () => {
-  if (searchQuery.value.trim() !== '') {
-    await performSearch();
-  } else {
-    await loadSchools();
-  }
+  await executeSearch();
 };
 
 const showDetails = (school: NrwSchulkatalogeintrag) => {
@@ -328,11 +316,7 @@ const handleSort = (column: string) => {
     sortDirection.value = 'asc';
   }
   currentPage.value = 0;
-  if (searchQuery.value.trim() !== '') {
-    performSearch();
-  } else {
-    loadSchools();
-  }
+  executeSearch();
 };
 
 const parseNswDate = (value: string | null): Date | null => {
