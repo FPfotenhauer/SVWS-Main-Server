@@ -16,6 +16,14 @@
           Zurücksetzen
         </button>
         <button 
+          @click="refreshData"
+          :disabled="loading"
+          class="refresh-button"
+          title="Schulkatalog aktualisieren"
+        >
+          Aktualisieren
+        </button>
+        <button 
           v-if="totalSchools === 0 && !loading"
           @click="loadData"
           class="load-data-button"
@@ -49,7 +57,7 @@
         <table class="schools-table">
           <thead>
             <tr>
-              <th @click="handleSort('schulnummer')" class="sortable-header">Schulnummer {{ sortBy === 'schulnummer' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
+              <th @click="handleSort('schulnummer')" class="sortable-header">Schulnr {{ sortBy === 'schulnummer' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
               <th @click="handleSort('schulname')" class="sortable-header">Bezeichnung {{ sortBy === 'schulname' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
               <th @click="handleSort('plz')" class="sortable-header">PLZ {{ sortBy === 'plz' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
               <th @click="handleSort('ort')" class="sortable-header">Ort {{ sortBy === 'ort' ? (sortDirection === 'asc' ? '▲' : '▼') : '' }}</th>
@@ -113,16 +121,23 @@
             <span>{{ selectedSchool.schultyp || '—' }}</span>
           </div>
           <div class="detail-item">
-            <label>Adresse:</label>
-            <span v-if="selectedSchool.strasse">{{ selectedSchool.strasse }}, {{ selectedSchool.plz }} {{ selectedSchool.ort }}</span>
-            <span v-else>{{ selectedSchool.plz }} {{ selectedSchool.ort }}</span>
+            <label>PLZ:</label>
+            <span>{{ selectedSchool.plz || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Ort:</label>
+            <span>{{ selectedSchool.ort || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Straße:</label>
+            <span>{{ selectedSchool.strasse || '—' }}</span>
           </div>
           <div class="detail-item">
             <label>Kreis:</label>
             <span>{{ selectedSchool.kreis || '—' }}</span>
           </div>
           <div class="detail-item">
-            <label>Schulamt:</label>
+            <label>Schultraeger:</label>
             <span>{{ selectedSchool.schulamt || '—' }}</span>
           </div>
           <div class="detail-item">
@@ -143,13 +158,14 @@
             </span>
             <span v-else>—</span>
           </div>
-          <div class="detail-item" v-if="selectedSchool.homepage">
+          <div class="detail-item">
             <label>Website:</label>
-            <span>
+            <span v-if="selectedSchool.homepage">
               <a :href="selectedSchool.homepage" target="_blank" rel="noopener noreferrer">
-                Zur Website
+                {{ selectedSchool.homepage }}
               </a>
             </span>
+            <span v-else>—</span>
           </div>
         </div>
       </div>
@@ -236,6 +252,26 @@ const loadData = async () => {
   }
 };
 
+const refreshData = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    await nrwKatalogApi.refreshCatalog();
+    // Wait a moment for backend to process
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    currentPage.value = 0;
+    if (searchQuery.value.trim() !== '') {
+      await performSearch();
+    } else {
+      await loadSchools();
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
+  } finally {
+    loading.value = false;
+  }
+};
+
 const nextPage = async () => {
   currentPage.value++;
   if (searchQuery.value.trim() !== '') {
@@ -303,19 +339,19 @@ loadSchools();
 
 .search-bar {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
 .search-input {
   flex: 1;
   min-width: 250px;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: #1f2937;
   border: 1px solid #374151;
   border-radius: 8px;
   color: #f8fafc;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 .search-input::placeholder {
@@ -329,12 +365,13 @@ loadSchools();
 }
 
 .search-button, .reset-button, .retry-button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .search-button {
@@ -355,8 +392,29 @@ loadSchools();
   background: #4b5563;
 }
 
+.refresh-button {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .load-data-button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   background: #10b981;
   color: white;
   border: none;
@@ -364,6 +422,7 @@ loadSchools();
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .load-data-button:hover {
@@ -580,12 +639,13 @@ loadSchools();
   background: #1f2937;
   border: 1px solid #374151;
   border-radius: 12px;
-  padding: 2rem;
-  max-width: 600px;
+  padding: 1.25rem 1.5rem;
+  max-width: 760px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
 }
 
 .close-button {
@@ -605,33 +665,38 @@ loadSchools();
 }
 
 .modal-content h2 {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.25rem 0;
+  padding-bottom: 0.6rem;
   color: #f8fafc;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
+  border-bottom: 2px solid #374151;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.9rem 1.4rem;
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .detail-item label {
   color: #94a3b8;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .detail-item span {
   color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .detail-item a {
