@@ -643,7 +643,34 @@ button.danger:active,
 
 input[type="checkbox"] {
   cursor: pointer;
-  width: 18px;
-  height: 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #0f766e;
+  border-radius: 3px;
+  background-color: transparent;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+input[type="checkbox"]:hover {
+  border-color: #14b8a6;
+  background-color: rgba(20, 184, 166, 0.1);
+}
+
+input[type="checkbox"]:checked {
+  background-color: #0891b2;
+  border-color: #0891b2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+  background-size: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+input[type="checkbox"]:checked:hover {
+  background-color: #06b6d4;
+  border-color: #06b6d4;
 }
 </style>
