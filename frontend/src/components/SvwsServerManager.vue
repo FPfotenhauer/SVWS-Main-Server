@@ -2,9 +2,11 @@
 import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
 import type { SvwsServerRequest } from "../types/svwsServer";
+import SchoolCreationModal from "./SchoolCreationModal.vue";
 
 const store = useSvwsServersStore();
 const showForm = ref(false);
+const showSchoolCreationModal = ref(false);
 const sortBy = ref<'name' | 'baseUrl'>('name');
 const sortDirection = ref<'asc' | 'desc'>('asc');
 const schoolSortBy = ref<'schulnummer' | 'name'>('schulnummer');
@@ -171,8 +173,22 @@ const migrateFromSchild = () => {
 };
 
 const createEmptySchool = () => {
-  console.log('Leere Schule einrichten auf Server:', store.selectedServer?.id);
-  // TODO: Backend call
+  showSchoolCreationModal.value = true;
+};
+
+const handleCreateEmptySchema = () => {
+  console.log('Leeres Schema anlegen auf Server:', store.selectedServer?.id);
+  // TODO: Backend call for empty schema creation
+};
+
+const handleImportBackup = () => {
+  console.log('Backup importieren auf Server:', store.selectedServer?.id);
+  // TODO: Backend call for backup import
+};
+
+const handleMigrateDatabase = () => {
+  console.log('SchILD-NRW2 Datenbank migrieren auf Server:', store.selectedServer?.id);
+  // TODO: Backend call for database migration
 };
 
 const canCreate = computed(() =>
@@ -479,6 +495,15 @@ onMounted(() => {
       </div>
     </section>
   </div>
+
+  <!-- School Creation Modal -->
+  <SchoolCreationModal
+    :visible="showSchoolCreationModal"
+    @close="showSchoolCreationModal = false"
+    @createEmptySchema="handleCreateEmptySchema"
+    @importBackup="handleImportBackup"
+    @migrateDatabase="handleMigrateDatabase"
+  />
 </template>
 
 <style scoped>
