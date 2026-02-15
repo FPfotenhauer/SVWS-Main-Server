@@ -302,7 +302,6 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> selectValidAdresse(List<Map<String, Object>> addresses, LocalDate today) {
         if (addresses == null || addresses.isEmpty()) {
             return null;

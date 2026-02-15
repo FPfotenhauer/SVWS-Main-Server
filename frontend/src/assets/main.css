@@ -97,7 +97,7 @@ main {
 
 .table th,
 .table td {
-  padding: 12px 10px;
+  padding: 4px 8px;
   text-align: left;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   font-size: 0.95rem;
@@ -138,12 +138,13 @@ main {
 button {
   border: none;
   border-radius: 10px;
-  padding: 10px 16px;
+  padding: 6px 12px;
   font-weight: 600;
   cursor: pointer;
   background: var(--accent);
   color: #0b0f19;
   transition: all 0.15s ease;
+  font-size: 0.9rem;
 }
 
 button:hover {

@@ -324,7 +324,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-for="server in filteredAndSortedServers" :key="server.id">
-            <td>
+            <td class="server-name">
               <strong>{{ server.name }}</strong>
             </td>
             <td>{{ server.baseUrl }}</td>
@@ -464,7 +464,7 @@ onMounted(() => {
                   title="Alle auswählen"
                 />
               </th>
-              <th class="sortable" @click="toggleSchoolSort('schulnummer')">
+              <th class="sortable" @click="toggleSchoolSort('schulnummer')" style="width: 120px;">
               Schulnummer
               <span class="sort-indicator" v-if="schoolSortBy === 'schulnummer'">
                 {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
@@ -476,7 +476,7 @@ onMounted(() => {
                 {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
-            <th>Aktionen</th>
+            <th style="width: 60px;">Aktionen</th>
           </tr>
         </thead>
         <tbody>
@@ -489,8 +489,8 @@ onMounted(() => {
                 @change="toggleSchoolSelection(school._uid)"
               />
             </td>
-            <td><strong>{{ school.schulnummer }}</strong></td>
-            <td>{{ school.name }}</td>
+            <td style="width: 120px;"><strong>{{ school.schulnummer }}</strong></td>
+            <td class="school-name">{{ school.name }}</td>
             <td>
               <div class="action-buttons">
                 <button 
@@ -563,11 +563,11 @@ onMounted(() => {
 }
 
 .icon-button {
-  --icon-size: 20px;
-  padding: 0.5rem;
+  --icon-size: 16px;
+  padding: 0.35rem;
   min-width: unset;
-  width: calc(var(--icon-size) + 1rem);
-  height: calc(var(--icon-size) + 1rem);
+  width: calc(var(--icon-size) + 0.7rem);
+  height: calc(var(--icon-size) + 0.7rem);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -667,6 +667,20 @@ button.danger:active,
   color: #6c757d;
   font-size: 0.9rem;
   white-space: nowrap;
+}
+
+.school-name {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-name {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .school-header-actions {
