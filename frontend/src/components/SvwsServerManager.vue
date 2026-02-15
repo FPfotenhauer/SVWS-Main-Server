@@ -253,6 +253,12 @@ const testConnection = async (serverId: string) => {
   }
 };
 
+const refreshAllConnections = async () => {
+  for (const server of store.servers) {
+    await testConnection(server.id);
+  }
+};
+
 const deleteServer = async (id: string) => {
   if (confirm("Are you sure you want to delete this SVWS server?")) {
     await store.deleteServer(id);
@@ -270,9 +276,19 @@ onMounted(() => {
     <section v-if="!store.selectedServer" class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h2>SVWS Server</h2>
-        <button type="button" @click="showForm = !showForm">
-          {{ showForm ? "Abbrechen" : "+ Server hinzufügen" }}
-        </button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" @click="refreshAllConnections" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Connection
+          </button>
+          <button type="button" @click="showForm = !showForm">
+            {{ showForm ? "Abbrechen" : "+ Server hinzufügen" }}
+          </button>
+        </div>
       </div>
 
       <!-- Add Server Form -->
