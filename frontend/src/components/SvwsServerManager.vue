@@ -363,26 +363,24 @@ onMounted(() => {
           <h2>Schulen auf: {{ store.selectedServer.name }}</h2>
           <p class="helper">{{ store.selectedServer.baseUrl }}</p>
         </div>
-        <button class="secondary" type="button" @click="store.clearSelection">
-          Zurück zur Serverliste
-        </button>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button type="button" @click="createEmptySchool" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <path d="M12 5v14"></path>
+              <path d="M5 12h14"></path>
+            </svg>
+            Neue Schule
+          </button>
+          <button class="secondary" type="button" @click="store.clearSelection">
+            Zurück zur Serverliste
+          </button>
+        </div>
       </div>
 
       <div v-if="store.loadingSchools" class="loading">Laden...</div>
       <div v-else-if="store.error" class="error-text">{{ store.error }}</div>
 
       <div v-else>
-        <!-- New School Button -->
-        <div class="school-header-actions">
-          <button type="button" @click="createEmptySchool" class="secondary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-              <path d="M12 5v14"></path>
-              <path d="M5 12h14"></path>
-            </svg>
-            Leere Schule einrichten
-          </button>
-        </div>
-
         <!-- Action Toolbar -->
         <div class="school-actions-toolbar">
           <button type="button" @click="createBackup" class="secondary">
@@ -679,5 +677,23 @@ input[type="checkbox"]:checked {
 input[type="checkbox"]:checked:hover {
   background-color: #06b6d4 !important;
   border-color: #06b6d4 !important;
+}
+</style>
+
+<style scoped>
+/* Ensure consistent button heights in header */
+.panel > div:first-child .secondary {
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  padding: 8px 16px !important;
+  white-space: nowrap !important;
+}
+
+.panel > div:first-child .secondary svg {
+  flex-shrink: 0 !important;
+  margin: 0 !important;
 }
 </style>
