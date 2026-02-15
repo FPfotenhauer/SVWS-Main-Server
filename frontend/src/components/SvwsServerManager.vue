@@ -318,7 +318,7 @@ onMounted(() => {
                   type="button" 
                   @click="testConnection(server.id)"
                   title="Verbindung testen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M12 6v6l4 2"></path>
                   </svg>
@@ -328,7 +328,7 @@ onMounted(() => {
                   type="button" 
                   @click="viewSchools(server.id)"
                   title="Schulen anzeigen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     <polyline points="9 22 9 12 15 12 15 22"></polyline>
                   </svg>
@@ -338,7 +338,7 @@ onMounted(() => {
                   type="button" 
                   @click="deleteServer(server.id)"
                   title="Löschen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"></path>
                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -511,10 +511,11 @@ onMounted(() => {
 }
 
 .icon-button {
+  --icon-size: 20px;
   padding: 0.5rem;
   min-width: unset;
-  width: 36px;
-  height: 36px;
+  width: calc(var(--icon-size) + 1rem);
+  height: calc(var(--icon-size) + 1rem);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -524,6 +525,8 @@ onMounted(() => {
 }
 
 .icon-button svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
   display: block;
 }
 
