@@ -349,7 +349,6 @@ onMounted(() => {
               <div class="status" :class="statusClass(server.status)">
                 {{ server.status }}
               </div>
-              <div class="helper" v-if="server.lastError">{{ server.lastError }}</div>
             </td>
             <td>
               <div class="action-buttons">
