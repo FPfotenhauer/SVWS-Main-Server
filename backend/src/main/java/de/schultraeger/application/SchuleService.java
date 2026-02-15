@@ -46,6 +46,26 @@ public class SchuleService {
         return repository.findAll(tenantContext.getTenantId());
     }
 
+    public SvwsSchuleInfo getSvwsSchoolInfo(UUID schuleId) throws SchuleNotFoundException {
+        Schule schule = repository.findById(tenantContext.getTenantId(), schuleId)
+                .orElseThrow(() -> new SchuleNotFoundException(schuleId));
+
+        String password = passwordCipher.decrypt(schule.svwsPasswordEncrypted());
+
+        long startInfo = System.nanoTime();
+        SvwsSchuleInfo info = svwsClient.getSchuleInfo(
+                schule.svwsUrl(),
+                schule.svwsSchema(),
+                schule.svwsUsername(),
+                password
+        );
+        long durationInfo = (System.nanoTime() - startInfo) / 1_000_000;
+        LOG.infov("svws_getschuleinfo duration_ms={0} schule_id={1} svws_url={2} schema={3}",
+            durationInfo, schule.id(), schule.svwsUrl(), schule.svwsSchema());
+
+        return info;
+    }
+
     @Transactional
     public Schule create(SchuleCreateData data) {
         UUID id = UUID.randomUUID();

@@ -3,10 +3,13 @@ import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
 import type { SvwsServerRequest } from "../types/svwsServer";
 import SchoolCreationModal from "./SchoolCreationModal.vue";
+import SchoolInfoModal from "./SchoolInfoModal.vue";
 
 const store = useSvwsServersStore();
 const showForm = ref(false);
 const showSchoolCreationModal = ref(false);
+const showSchoolInfoModal = ref(false);
+const selectedSchoolInfo = ref(null);
 const sortBy = ref<'name' | 'baseUrl'>('name');
 const sortDirection = ref<'asc' | 'desc'>('asc');
 const schoolSortBy = ref<'schulnummer' | 'name'>('schulnummer');
@@ -189,6 +192,11 @@ const handleImportBackup = () => {
 const handleMigrateDatabase = () => {
   console.log('SchILD-NRW2 Datenbank migrieren auf Server:', store.selectedServer?.id);
   // TODO: Backend call for database migration
+};
+
+const showSchoolInfo = (school: any) => {
+  selectedSchoolInfo.value = school;
+  showSchoolInfoModal.value = true;
 };
 
 const canCreate = computed(() =>
@@ -468,8 +476,7 @@ onMounted(() => {
                 {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
-            <th>Ort</th>
-            <th>PLZ</th>
+            <th>Aktionen</th>
           </tr>
         </thead>
         <tbody>
@@ -484,11 +491,24 @@ onMounted(() => {
             </td>
             <td><strong>{{ school.schulnummer }}</strong></td>
             <td>{{ school.name }}</td>
-            <td>{{ school.ort }}</td>
-            <td>{{ school.plz }}</td>
+            <td>
+              <div class="action-buttons">
+                <button 
+                  class="icon-button secondary" 
+                  type="button" 
+                  @click="showSchoolInfo(school)"
+                  title="Informationen anzeigen">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <path d="M12 17h.01"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
           </tr>
           <tr v-if="!filteredAndSortedSchools.length">
-            <td colspan="5">Keine Schulen gefunden.</td>
+            <td colspan="4">Keine Schulen gefunden.</td>
           </tr>
         </tbody>
       </table>
@@ -503,6 +523,13 @@ onMounted(() => {
     @createEmptySchema="handleCreateEmptySchema"
     @importBackup="handleImportBackup"
     @migrateDatabase="handleMigrateDatabase"
+  />
+
+  <!-- School Info Modal -->
+  <SchoolInfoModal
+    :visible="showSchoolInfoModal"
+    :schule="selectedSchoolInfo"
+    @close="showSchoolInfoModal = false"
   />
 </template>
 

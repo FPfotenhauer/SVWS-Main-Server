@@ -175,7 +175,32 @@ class SchuleServiceTest {
 
         @Override
         public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) {
-            return new SvwsSchuleInfo(123456L, "Staedt. Gymnasium", "12345", "Teststadt");
+            return new SvwsSchuleInfo(
+                    Long.valueOf(123456L),     // schulnummer
+                    "Staedt. Gymnasium",        // name
+                    "12345",                    // plz
+                    "Teststadt",                // ort
+                    null,                       // strasse
+                    null,                       // hausnummer
+                    null,                       // hausnummerZusatz
+                    null,                       // telefon
+                    null,                       // fax
+                    null,                       // email
+                    null,                       // homepage
+                    null,                       // schulform
+                    null,                       // schulart
+                    null,                       // schulgliederung
+                    null,                       // schulleiter
+                    null,                       // schulleiterTelefon
+                    null,                       // schulleiterEmail
+                    null,                       // kreis
+                    null,                       // schulamt
+                    null,                       // staat
+                    null,                       // schulnummer2
+                    null,                       // schulstatus
+                    null,                       // kapitel
+                    null                        // satzungsgebendeKommune
+            );
         }
 
         @Override
