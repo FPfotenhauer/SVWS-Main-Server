@@ -1,0 +1,22 @@
+package de.schultraeger.application.port.out;
+
+/**
+ * Exception for SVWS API access errors.
+ */
+public class SvwsClientException extends RuntimeException {
+    private final int statusCode;
+
+    public SvwsClientException(String message, int statusCode, Throwable cause) {
+        super(message, cause);
+        this.statusCode = statusCode;
+    }
+
+    public SvwsClientException(String message, int statusCode) {
+        super(message);
+        this.statusCode = statusCode;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+}
