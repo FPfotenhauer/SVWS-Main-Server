@@ -21,8 +21,7 @@ public class UserEntity extends PanacheEntityBase {
     @Column(name = "password_hash", nullable = false)
     public String passwordHash;
 
-    @Column(name = "tenant_id")
-    public UUID tenantId;
+    
 
     @Column(name = "created_at")
     public LocalDateTime createdAt;
@@ -35,7 +34,7 @@ public class UserEntity extends PanacheEntityBase {
             entity.id,
             entity.username,
             entity.passwordHash,
-            entity.tenantId,
+            
             entity.createdAt,
             entity.updatedAt
         );
@@ -46,7 +45,7 @@ public class UserEntity extends PanacheEntityBase {
         entity.id = domain.id();
         entity.username = domain.username();
         entity.passwordHash = domain.passwordHash();
-        entity.tenantId = domain.tenantId();
+        
         entity.createdAt = domain.createdAt();
         entity.updatedAt = domain.updatedAt();
         return entity;

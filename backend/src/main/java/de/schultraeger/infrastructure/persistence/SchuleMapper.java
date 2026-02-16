@@ -45,10 +45,9 @@ public class SchuleMapper {
         );
     }
 
-    public SchuleEntity toEntity(UUID tenantId, Schule schule) {
+    public SchuleEntity toEntity(Schule schule) {
         SchuleEntity entity = new SchuleEntity();
         entity.id = schule.id();
-        entity.tenantId = tenantId;
         entity.name = schule.name();
         entity.schulnummer = schule.schulnummer();
         entity.svwsUrl = schule.svwsUrl();

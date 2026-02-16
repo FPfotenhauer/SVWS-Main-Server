@@ -30,7 +30,6 @@ public class AuthService {
             java.util.UUID.randomUUID(),
             username,
             passwordHasher.hash(password),
-            null,
             java.time.LocalDateTime.now(),
             java.time.LocalDateTime.now()
         );
@@ -53,7 +52,6 @@ public class AuthService {
             user.id(),
             user.username(),
             passwordHasher.hash(newPassword),
-            user.tenantId(),
             user.createdAt(),
             java.time.LocalDateTime.now()
         );

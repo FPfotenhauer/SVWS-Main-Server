@@ -7,7 +7,6 @@ import de.schultraeger.application.port.out.PasswordCipher;
 import de.schultraeger.application.port.out.SchuleRepository;
 import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
-import de.schultraeger.application.security.TenantContext;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SchuleStatus;
 import de.schultraeger.domain.SyncStatus;
@@ -29,25 +28,22 @@ public class SchuleService {
     private static final Logger LOG = Logger.getLogger(SchuleService.class);
     private final SchuleRepository repository;
     private final SvwsClient svwsClient;
-    private final TenantContext tenantContext;
     private final PasswordCipher passwordCipher;
 
     public SchuleService(SchuleRepository repository,
                          SvwsClient svwsClient,
-                         TenantContext tenantContext,
                          PasswordCipher passwordCipher) {
         this.repository = repository;
         this.svwsClient = svwsClient;
-        this.tenantContext = tenantContext;
         this.passwordCipher = passwordCipher;
     }
 
     public List<Schule> list() {
-        return repository.findAll(tenantContext.getTenantId());
+        return repository.findAllSchools();
     }
 
     public SvwsSchuleInfo getSvwsSchoolInfo(UUID schuleId) throws SchuleNotFoundException {
-        Schule schule = repository.findById(tenantContext.getTenantId(), schuleId)
+        Schule schule = repository.findSchoolById(schuleId)
                 .orElseThrow(() -> new SchuleNotFoundException(schuleId));
 
         String password = passwordCipher.decrypt(schule.svwsPasswordEncrypted());
@@ -98,7 +94,7 @@ public class SchuleService {
                 null, null                      // schulnummer2, schulstatus
         );
 
-        return repository.save(tenantContext.getTenantId(), schule);
+        return repository.saveSchool(schule);
     }
 
     @Transactional
@@ -139,7 +135,7 @@ public class SchuleService {
                 existing.schulstatus()
         );
 
-        return repository.update(tenantContext.getTenantId(), updated);
+        return repository.updateSchool(updated);
     }
 
     @Transactional
@@ -160,17 +156,17 @@ public class SchuleService {
             SchuleStatus status = privileged ? SchuleStatus.VERIFIED : SchuleStatus.INVALID_CREDENTIALS;
             String error = privileged ? null : "Invalid credentials";
             Schule updated = withStatus(existing, status, null, null, error);
-            return repository.update(tenantContext.getTenantId(), updated);
+            return repository.updateSchool(updated);
         } catch (SvwsClientException ex) {
             SchuleStatus status = mapStatus(ex.getStatusCode());
             String error = mapError(status);
             Schule updated = withStatus(existing, status, null, null, error);
-            return repository.update(tenantContext.getTenantId(), updated);
+            return repository.updateSchool(updated);
         } catch (RuntimeException ex) {
             SchuleStatus status = mapStatus(ex);
             String error = mapError(status);
             Schule updated = withStatus(existing, status, null, null, error);
-            return repository.update(tenantContext.getTenantId(), updated);
+            return repository.updateSchool(updated);
         }
     }
 
@@ -193,7 +189,7 @@ public class SchuleService {
             if (!privileged) {
                 Schule updated = withStatus(existing, SchuleStatus.INVALID_CREDENTIALS,
                         now, SyncStatus.INVALID_CREDENTIALS, "Invalid credentials");
-                return repository.update(tenantContext.getTenantId(), updated);
+                return repository.updateSchool(updated);
             }
 
             long startInfo = System.nanoTime();
@@ -244,24 +240,24 @@ public class SchuleService {
                     info.schulstatus()
             );
 
-            return repository.update(tenantContext.getTenantId(), updated);
+            return repository.updateSchool(updated);
         } catch (SvwsClientException ex) {
             SchuleStatus status = mapStatus(ex.getStatusCode());
             SyncStatus syncStatus = mapSyncStatus(ex.getStatusCode());
             String error = mapError(status);
             Schule updated = withStatus(existing, status, now, syncStatus, error);
-            return repository.update(tenantContext.getTenantId(), updated);
+                return repository.updateSchool(updated);
         } catch (RuntimeException ex) {
             SchuleStatus status = mapStatus(ex);
             SyncStatus syncStatus = mapSyncStatus(ex);
             String error = mapError(status);
             Schule updated = withStatus(existing, status, now, syncStatus, error);
-            return repository.update(tenantContext.getTenantId(), updated);
+                return repository.updateSchool(updated);
         }
     }
 
     private Schule getById(UUID id) {
-        return repository.findById(tenantContext.getTenantId(), id)
+        return repository.findSchoolById(id)
                 .orElseThrow(() -> new SchuleNotFoundException(id));
     }
 

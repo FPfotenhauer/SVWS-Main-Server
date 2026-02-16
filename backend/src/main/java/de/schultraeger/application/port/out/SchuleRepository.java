@@ -10,11 +10,11 @@ import java.util.UUID;
  * Tenant-aware persistence port for schools.
  */
 public interface SchuleRepository {
-    List<Schule> findAll(UUID tenantId);
+    List<Schule> findAllSchools();
 
-    Optional<Schule> findById(UUID tenantId, UUID id);
+    Optional<Schule> findSchoolById(UUID id);
 
-    Schule save(UUID tenantId, Schule schule);
+    Schule saveSchool(Schule schule);
 
-    Schule update(UUID tenantId, Schule schule);
+    Schule updateSchool(Schule schule);
 }

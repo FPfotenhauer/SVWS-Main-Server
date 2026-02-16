@@ -25,7 +25,7 @@ class SchuleServiceTest {
     @Test
     void createShouldEncryptPasswordAndSetUnverified() {
         InMemoryRepo repo = new InMemoryRepo();
-        SchuleService service = new SchuleService(repo, new StubSvwsClient(), new StubTenant(), new StubCipher());
+        SchuleService service = new SchuleService(repo, new StubSvwsClient(), new StubCipher());
 
         Schule created = service.create(new SchuleCreateData(
                 "Schule A",
@@ -43,7 +43,7 @@ class SchuleServiceTest {
     @Test
     void verifyShouldSetInvalidCredentials() {
         InMemoryRepo repo = new InMemoryRepo();
-        SchuleService service = new SchuleService(repo, new StubSvwsClient(), new StubTenant(), new StubCipher());
+        SchuleService service = new SchuleService(repo, new StubSvwsClient(), new StubCipher());
         Schule created = service.create(new SchuleCreateData(
                 "Schule A",
                 "https://svws.local",
@@ -59,7 +59,7 @@ class SchuleServiceTest {
     @Test
     void syncShouldUpdateSchulnummerAndNameOnSuccess() {
         InMemoryRepo repo = new InMemoryRepo();
-        SchuleService service = new SchuleService(repo, new SuccessSvwsClient(), new StubTenant(), new StubCipher());
+        SchuleService service = new SchuleService(repo, new SuccessSvwsClient(), new StubCipher());
         Schule created = service.create(new SchuleCreateData(
                 "Schule A",
                 "https://svws.local",
@@ -78,7 +78,7 @@ class SchuleServiceTest {
     @Test
     void updateShouldResetStatus() {
         InMemoryRepo repo = new InMemoryRepo();
-        SchuleService service = new SchuleService(repo, new StubSvwsClient(), new StubTenant(), new StubCipher());
+        SchuleService service = new SchuleService(repo, new StubSvwsClient(), new StubCipher());
         Schule created = service.create(new SchuleCreateData(
                 "Schule A",
                 "https://svws.local",
@@ -103,23 +103,23 @@ class SchuleServiceTest {
         private final List<Schule> data = new ArrayList<>();
 
         @Override
-        public List<Schule> findAll(UUID tenantId) {
+        public List<Schule> findAllSchools() {
             return List.copyOf(data);
         }
 
         @Override
-        public Optional<Schule> findById(UUID tenantId, UUID id) {
+        public Optional<Schule> findSchoolById(UUID id) {
             return data.stream().filter(item -> item.id().equals(id)).findFirst();
         }
 
         @Override
-        public Schule save(UUID tenantId, Schule schule) {
+        public Schule saveSchool(Schule schule) {
             data.add(schule);
             return schule;
         }
 
         @Override
-        public Schule update(UUID tenantId, Schule schule) {
+        public Schule updateSchool(Schule schule) {
             data.removeIf(item -> item.id().equals(schule.id()));
             data.add(schule);
             return schule;
@@ -127,11 +127,6 @@ class SchuleServiceTest {
     }
 
     private static class StubTenant implements TenantContext {
-        @Override
-        public UUID getTenantId() {
-            return UUID.fromString("00000000-0000-0000-0000-000000000001");
-        }
-
         @Override
         public String getUserId() {
             return "user-1";

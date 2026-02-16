@@ -23,8 +23,7 @@ public class SchuleEntity {
     @Id
     public UUID id;
 
-    @Column(name = "tenant_id", nullable = false)
-    public UUID tenantId;
+    
 
     @Column(name = "name", nullable = false, length = 255)
     public String name;

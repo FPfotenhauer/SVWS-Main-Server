@@ -110,7 +110,7 @@ Admin --> "Frontend (Vue SPA)"
 * Klare Layer-Trennung
 * Stateless Backend
 * JWT-basierte Security
-* Mandantenfähigkeit (Tenant-ID)
+ * Mandantenfähigkeit (separate Datenbanken pro Mandant)
 * Container-basierter Betrieb
 * Erweiterbar ohne Re-Architektur
 
@@ -229,7 +229,6 @@ node "Identity Provider" {
 
 * OIDC
 * JWT Access Tokens
-* tenant_id im Claim
 * Rollenbasiert (ADMIN)
 * Stateless Backend
 
@@ -238,9 +237,10 @@ node "Identity Provider" {
 ## 8.2 Multi-Tenancy
 
 * Mandant = Schulträger
-* tenant_id pro Tabelle
-* Tenant wird aus JWT gelesen
-* Keine Mandanten-ID aus Request
+
+Mandanten werden durch getrennte Datenbanken pro Mandant isoliert. Es gibt keine `tenant_id`-Spalte in den Anwendungstabellen; die Zuordnung erfolgt über die Deployment- und Verbindungs-Konfiguration.
+
+Tenant-Informationen werden nicht aus dem JWT oder Request-Parametern abgeleitet.
 
 ---
 
@@ -248,7 +248,7 @@ node "Identity Provider" {
 
 * PostgreSQL
 * Flyway Migrationen
-* tenant_id in jeder Tabelle
+* Separate Datenbanken pro Mandant; keine `tenant_id`-Spalten in Anwendungstabellen
 * Verschlüsselte Speicherung von SVWS-Credentials
 
 ---
@@ -256,7 +256,6 @@ node "Identity Provider" {
 ## 8.4 Logging
 
 * JSON Logging
-* tenant_id im Log
 * request_id
 * SVWS-Aufrufe protokolliert
 * Health-Endpoints

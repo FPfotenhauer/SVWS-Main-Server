@@ -7,7 +7,6 @@ public record User(
     UUID id,
     String username,
     String passwordHash,
-    UUID tenantId,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {

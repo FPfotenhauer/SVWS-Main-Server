@@ -22,7 +22,6 @@ import java.util.UUID;
 @Priority(Priorities.AUTHENTICATION)
 public class RequestLoggingFilter implements ContainerRequestFilter, ContainerResponseFilter {
     private static final String MDC_REQUEST_ID = "request_id";
-    private static final String MDC_TENANT_ID = "tenant_id";
     private static final String MDC_USER_ID = "user_id";
     private static final String START_TIME = "requestStartTime";
     private static final String HEADER_REQUEST_ID = "X-Request-Id";
@@ -38,11 +37,7 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
         }
         MDC.put(MDC_REQUEST_ID, requestId);
 
-        try {
-            MDC.put(MDC_TENANT_ID, tenantContext.getTenantId().toString());
-        } catch (RuntimeException e) {
-            // Tenant context may not be available
-        }
+        // no tenant_id in logs; tenancy is provided by deployment / DB configuration
         try {
             MDC.put(MDC_USER_ID, tenantContext.getUserId());
         } catch (RuntimeException e) {
@@ -66,7 +61,6 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
         }
 
         MDC.remove(MDC_REQUEST_ID);
-        MDC.remove(MDC_TENANT_ID);
         MDC.remove(MDC_USER_ID);
         MDC.remove("duration_ms");
     }
