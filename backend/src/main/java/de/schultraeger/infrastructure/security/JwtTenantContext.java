@@ -5,7 +5,6 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 
-import java.util.UUID;
 
 /**
  * Security context resolved from the JWT.

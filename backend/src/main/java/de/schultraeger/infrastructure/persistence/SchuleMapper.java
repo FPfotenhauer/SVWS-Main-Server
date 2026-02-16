@@ -2,7 +2,6 @@ package de.schultraeger.infrastructure.persistence;
 
 import de.schultraeger.domain.Schule;
 
-import java.util.UUID;
 
 /**
  * Maps between domain models and JPA entities.

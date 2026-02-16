@@ -126,12 +126,7 @@ class SchuleServiceTest {
         }
     }
 
-    private static class StubTenant implements TenantContext {
-        @Override
-        public String getUserId() {
-            return "user-1";
-        }
-    }
+    
 
     private static class StubCipher implements PasswordCipher {
         @Override
