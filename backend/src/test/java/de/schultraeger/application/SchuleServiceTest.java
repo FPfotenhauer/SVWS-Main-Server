@@ -7,7 +7,6 @@ import de.schultraeger.application.port.out.PasswordCipher;
 import de.schultraeger.application.port.out.SchuleRepository;
 import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
-import de.schultraeger.application.security.TenantContext;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SchuleStatus;
 import de.schultraeger.domain.SyncStatus;
