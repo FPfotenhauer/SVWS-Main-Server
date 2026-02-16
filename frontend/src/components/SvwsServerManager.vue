@@ -199,6 +199,10 @@ const showSchoolInfo = (school: any) => {
   showSchoolInfoModal.value = true;
 };
 
+const navigateToVerwalteteSchulen = () => {
+  window.dispatchEvent(new Event('navigate-to-verwaltete-schulen'));
+};
+
 const canCreate = computed(() =>
   form.value.name &&
   form.value.url &&
@@ -287,6 +291,9 @@ onMounted(() => {
           </button>
           <button type="button" @click="showForm = !showForm">
             {{ showForm ? "Abbrechen" : "+ Server hinzufügen" }}
+          </button>
+          <button type="button" @click="navigateToVerwalteteSchulen" class="secondary">
+            Schulen anzeigen
           </button>
         </div>
       </div>
@@ -531,6 +538,7 @@ onMounted(() => {
       </table>
       </div>
     </section>
+
   </div>
 
   <!-- School Creation Modal -->

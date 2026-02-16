@@ -25,6 +25,12 @@ public class SchuleEntity {
     @Column(name = "svws_schema", nullable = false, length = 255)
     public String svwsSchema;
 
+    @Column(name = "svws_username", length = 255)
+    public String svwsUsername;
+
+    @Column(name = "svws_user_password_encrypted", length = 512)
+    public String svwsUserPasswordEncrypted;
+
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
 

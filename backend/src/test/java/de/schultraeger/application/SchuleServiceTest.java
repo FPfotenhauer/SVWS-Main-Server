@@ -129,6 +129,11 @@ class SchuleServiceTest {
         public void deleteByServerId(UUID svwsServerId) {
             data.removeIf(item -> item.svwsServerId().equals(svwsServerId));
         }
+
+        @Override
+        public void deleteSchool(UUID id) {
+            data.removeIf(item -> item.id().equals(id));
+        }
     }
 
     private class StubSvwsServerRepository implements SvwsServerRepository {

@@ -5,11 +5,12 @@ import LoginPanel from "./components/LoginPanel.vue";
 import Dashboard from "./components/Dashboard.vue";
 import SvwsServerManager from "./components/SvwsServerManager.vue";
 import SchulkatalogeintragBrowser from "./components/SchulkatalogeintragBrowser.vue";
+import SvwsServerSchoolList from "./components/SvwsServerSchoolList.vue";
 import ChangePasswordModal from "./components/ChangePasswordModal.vue";
 
 const auth = useAuthStore();
 const showChangePasswordModal = ref(false);
-const currentView = ref<'dashboard' | 'servers' | 'schulkatalog'>('dashboard');
+const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen'>('dashboard');
 
 onMounted(async () => {
   await auth.handleRedirect();
@@ -22,6 +23,10 @@ onMounted(async () => {
   window.addEventListener('navigate-to-schulkatalog', () => {
     currentView.value = 'schulkatalog';
   });
+
+  window.addEventListener('navigate-to-verwaltete-schulen', () => {
+    currentView.value = 'verwaltete-schulen';
+  });
 });
 </script>
 
@@ -31,9 +36,10 @@ onMounted(async () => {
       <div>
         <p class="eyebrow">SVWS-MAIN-SERVER</p>
         <h1>
-          {{ currentView === 'dashboard' ? 'Dashboard' : currentView === 'servers' ? 'SVWS Server verwalten' : 'Schulkatalog NRW' }}
+          {{ currentView === 'dashboard' ? 'Dashboard' : currentView === 'servers' ? 'SVWS Server verwalten' : currentView === 'schulkatalog' ? 'Schulkatalog NRW' : 'Verwaltete Schulen' }}
         </h1>
         <p v-if="currentView === 'schulkatalog'" class="header-subtitle">Alle Schulen in Nordrhein-Westfalen</p>
+        <p v-if="currentView === 'verwaltete-schulen'" class="header-subtitle">Schulen mit Anmeldedaten</p>
       </div>
       <div v-if="auth.isAuthenticated" class="header-actions">
         <button v-if="currentView !== 'dashboard'" class="ghost" type="button" @click="currentView = 'dashboard'">Dashboard</button>
@@ -48,6 +54,7 @@ onMounted(async () => {
       <Dashboard v-else-if="currentView === 'dashboard'" @navigate-to-servers="currentView = 'servers'" @navigate-to-schulkatalog="currentView = 'schulkatalog'" />
       <SvwsServerManager v-else-if="currentView === 'servers'" />
       <SchulkatalogeintragBrowser v-else-if="currentView === 'schulkatalog'" />
+      <SvwsServerSchoolList v-else-if="currentView === 'verwaltete-schulen'" />
     </main>
 
     <ChangePasswordModal :visible="showChangePasswordModal" @close="showChangePasswordModal = false" />

@@ -37,6 +37,32 @@ public class SchuleService {
         return repository.findAllSchools();
     }
 
+    @Transactional
+    public Schule create(de.schultraeger.api.dto.SchuleRequest request) {
+        // Encrypt the password
+        String encryptedPassword = null;
+        if (request.svwsPassword() != null && !request.svwsPassword().isEmpty()) {
+            encryptedPassword = passwordCipher.encrypt(request.svwsPassword());
+        }
+        
+        // Create new school
+        Instant now = Instant.now();
+        Schule schule = new Schule(
+            UUID.randomUUID(),
+            UUID.fromString(request.svwsServerId()),
+            request.svwsSchema(),
+            request.svwsUsername(),
+            encryptedPassword,
+            now,
+            now
+        );
+        
+        // Save to repository
+        repository.saveSchool(schule);
+        
+        return schule;
+    }
+
     public Schule getById(UUID id) {
         return repository.findSchoolById(id)
                 .orElseThrow(() -> new SchuleNotFoundException(id));
@@ -81,6 +107,8 @@ public class SchuleService {
                 UUID.randomUUID(),
                 server.id(),
                 info.schema(),
+                null,  // svwsUsername - will be set later by user
+                null,  // svwsUserPasswordEncrypted - will be set later by user
                 now,
                 now
         );
@@ -90,7 +118,43 @@ public class SchuleService {
     }
 
     @Transactional
+    public Schule update(UUID id, de.schultraeger.api.dto.SchuleRequest request) {
+        // Get the existing school
+        Schule existing = getById(id);
+        
+        // Encrypt the password if provided
+        String encryptedPassword = null;
+        if (request.svwsPassword() != null && !request.svwsPassword().isEmpty()) {
+            encryptedPassword = passwordCipher.encrypt(request.svwsPassword());
+        } else if (existing.svwsUserPasswordEncrypted() != null) {
+            // Keep existing password if no new one provided
+            encryptedPassword = existing.svwsUserPasswordEncrypted();
+        }
+        
+        // Create updated school
+        Schule updated = new Schule(
+            id,
+            existing.svwsServerId(),
+            request.svwsSchema(),
+            request.svwsUsername(),
+            encryptedPassword,
+            existing.createdAt(),
+            Instant.now()
+        );
+        
+        // Update in repository
+        repository.updateSchool(updated);
+        
+        return updated;
+    }
+
+    @Transactional
     public void deleteByServerId(UUID svwsServerId) {
         repository.deleteByServerId(svwsServerId);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        repository.deleteSchool(id);
     }
 }

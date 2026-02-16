@@ -10,6 +10,8 @@ public record Schule(
         UUID id,
         UUID svwsServerId,
         String svwsSchema,
+        String svwsUsername,
+        String svwsUserPasswordEncrypted,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -1,24 +1,29 @@
 package de.schultraeger.api;
 
 import de.schultraeger.api.dto.SchuleResponse;
+import de.schultraeger.api.dto.SchuleRequest;
 import de.schultraeger.application.SchuleService;
 import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
-import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST endpoints for school management.
  */
 @Path("/api/schulen")
-@RolesAllowed("ADMIN")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class SchuleResource {
@@ -35,18 +40,41 @@ public class SchuleResource {
         return service.list().stream().map(this::toResponse).toList();
     }
 
+    @POST
+    public Response create(SchuleRequest request) {
+        Schule created = service.create(request);
+        return Response.status(Response.Status.CREATED)
+                .entity(toResponse(created))
+                .build();
+    }
+
+    @PUT
+    @Path("{id}")
+    public SchuleResponse update(@PathParam("id") UUID id, SchuleRequest request) {
+        Schule updated = service.update(id, request);
+        return toResponse(updated);
+    }
+
+    @DELETE
+    @Path("{id}")
+    public Response delete(@PathParam("id") UUID id) {
+        service.delete(id);
+        return Response.noContent().build();
+    }
+
     private SchuleResponse toResponse(Schule schule) {
         String serverName = serverRepository.getById(schule.svwsServerId())
                 .map(SvwsServer::name)
                 .orElse("Unknown Server (" + schule.svwsServerId() + ")");
 
         return new SchuleResponse(
-                schule.id(),
-                schule.svwsServerId(),
+                schule.id() != null ? schule.id().toString() : null,
+                schule.svwsServerId() != null ? schule.svwsServerId().toString() : null,
                 serverName,
                 schule.svwsSchema(),
-                schule.createdAt(),
-                schule.updatedAt()
+                schule.svwsUsername(),
+                schule.createdAt() != null ? schule.createdAt().toString() : null,
+                schule.updatedAt() != null ? schule.updatedAt().toString() : null
         );
     }
 }

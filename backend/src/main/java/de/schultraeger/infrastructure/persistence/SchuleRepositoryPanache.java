@@ -55,6 +55,7 @@ public class SchuleRepositoryPanache implements SchuleRepository, PanacheReposit
             throw new IllegalStateException("Schule not found");
         }
         mapper.updateEntity(entity, schule);
+        flush();
         return mapper.toDomain(entity);
     }
 
@@ -62,5 +63,11 @@ public class SchuleRepositoryPanache implements SchuleRepository, PanacheReposit
     @Transactional
     public void deleteByServerId(UUID svwsServerId) {
         delete("svwsServerId", svwsServerId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteSchool(UUID id) {
+        deleteById(id);
     }
 }

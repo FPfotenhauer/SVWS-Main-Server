@@ -3,6 +3,7 @@ export interface Schule {
   svwsServerId: string;
   svwsServerName: string;
   svwsSchema: string;
+  svwsUsername?: string;
   createdAt: string;
   updatedAt: string;
 }

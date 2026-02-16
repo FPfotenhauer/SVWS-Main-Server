@@ -21,4 +21,6 @@ public interface SchuleRepository {
     Schule updateSchool(Schule schule);
 
     void deleteByServerId(UUID svwsServerId);
+
+    void deleteSchool(UUID id);
 }
