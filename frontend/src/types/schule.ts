@@ -13,6 +13,27 @@ export interface Schule {
   lastError?: string | null;
   createdAt: string;
   updatedAt: string;
+  // Address information
+  strasse?: string | null;
+  hausnummer?: string | null;
+  hausnummerZusatz?: string | null;
+  plz?: string | null;
+  ort?: string | null;
+  // Contact information
+  telefon?: string | null;
+  fax?: string | null;
+  email?: string | null;
+  homepage?: string | null;
+  // Administrative information
+  schulleiter?: string | null;
+  schulleiterTelefon?: string | null;
+  schulleiterEmail?: string | null;
+  // Region information
+  kreis?: string | null;
+  schulamt?: string | null;
+  // Additional metadata
+  schulnummer2?: string | null;
+  schulstatus?: string | null;
 }
 
 export interface SchuleRequest {

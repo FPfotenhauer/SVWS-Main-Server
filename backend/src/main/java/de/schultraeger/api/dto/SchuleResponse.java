@@ -21,6 +21,27 @@ public record SchuleResponse(
         SyncStatus lastSyncStatus,
         String lastError,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        // Address information
+        String strasse,
+        String hausnummer,
+        String hausnummerZusatz,
+        String plz,
+        String ort,
+        // Contact information
+        String telefon,
+        String fax,
+        String email,
+        String homepage,
+        // Administrative information
+        String schulleiter,
+        String schulleiterTelefon,
+        String schulleiterEmail,
+        // Region information
+        String kreis,
+        String schulamt,
+        // Additional metadata
+        String schulnummer2,
+        String schulstatus
 ) {
 }

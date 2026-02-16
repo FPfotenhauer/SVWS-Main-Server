@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useSchulenStore } from "../stores/schulen";
-import type { SchuleRequest } from "../types/schule";
+import type { SchuleRequest, Schule } from "../types/schule";
+import SchoolInfoModal from "./SchoolInfoModal.vue";
 
 const store = useSchulenStore();
+const showInfoModal = ref(false);
+const selectedSchule = ref<Schule | null>(null);
+
 const form = ref<SchuleRequest>({
   name: "",
   svwsUrl: "",
@@ -42,6 +46,22 @@ const create = async () => {
     svwsUsername: "",
     svwsPassword: ""
   };
+};
+
+const showSchoolInfo = async (schule: any) => {
+  selectedSchule.value = schule;
+  showInfoModal.value = true;
+  // Sync the school data when opening the info modal
+  try {
+    await store.sync(schule.id);
+    // Update the selected school with the latest data
+    const updated = store.items.find(s => s.id === schule.id);
+    if (updated) {
+      selectedSchule.value = updated;
+    }
+  } catch (err) {
+    console.error("Failed to sync school:", err);
+  }
 };
 
 onMounted(() => {
@@ -100,6 +120,13 @@ onMounted(() => {
               Verbindung testen
             </button>
             <button type="button" @click="store.sync(schule.id)">Synchronisieren</button>
+            <button class="icon-button secondary" type="button" @click="showSchoolInfo(schule)" title="Informationen anzeigen">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <path d="M12 17h.01"></path>
+              </svg>
+            </button>
           </td>
         </tr>
         <tr v-if="!store.items.length">
@@ -108,4 +135,49 @@ onMounted(() => {
       </tbody>
     </table>
   </section>
+
+  <!-- School Info Modal -->
+  <SchoolInfoModal
+    :visible="showInfoModal"
+    :schule="selectedSchule"
+    @close="showInfoModal = false"
+  />
 </template>
+
+<style scoped>
+.icon-button {
+  --icon-size: 20px;
+  padding: 0.5rem;
+  min-width: unset;
+  width: calc(var(--icon-size) + 1rem);
+  height: calc(var(--icon-size) + 1rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  margin-left: 0.5rem;
+}
+
+.icon-button svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  display: block;
+}
+
+.icon-button:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.icon-button:active {
+  transform: translateY(0) scale(0.95);
+  background-color: #545b62;
+  box-shadow: 0 1px 4px rgba(108, 117, 125, 0.2);
+}
+</style>

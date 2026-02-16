@@ -22,6 +22,27 @@ body {
   background: radial-gradient(circle at top, #1e293b, #0f172a 60%);
   color: var(--text);
   min-height: 100vh;
+  scrollbar-color: rgba(148, 163, 184, 0.45) rgba(15, 23, 42, 0.8);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 42, 0.8);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
 }
 
 .app-shell {
@@ -76,7 +97,7 @@ main {
 
 .table th,
 .table td {
-  padding: 12px 10px;
+  padding: 4px 8px;
   text-align: left;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   font-size: 0.95rem;
@@ -117,12 +138,13 @@ main {
 button {
   border: none;
   border-radius: 10px;
-  padding: 10px 16px;
+  padding: 6px 12px;
   font-weight: 600;
   cursor: pointer;
   background: var(--accent);
   color: #0b0f19;
   transition: all 0.15s ease;
+  font-size: 0.9rem;
 }
 
 button:hover {

@@ -2,9 +2,14 @@
 import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
 import type { SvwsServerRequest } from "../types/svwsServer";
+import SchoolCreationModal from "./SchoolCreationModal.vue";
+import SchoolInfoModal from "./SchoolInfoModal.vue";
 
 const store = useSvwsServersStore();
 const showForm = ref(false);
+const showSchoolCreationModal = ref(false);
+const showSchoolInfoModal = ref(false);
+const selectedSchoolInfo = ref(null);
 const sortBy = ref<'name' | 'baseUrl'>('name');
 const sortDirection = ref<'asc' | 'desc'>('asc');
 const schoolSortBy = ref<'schulnummer' | 'name'>('schulnummer');
@@ -171,8 +176,27 @@ const migrateFromSchild = () => {
 };
 
 const createEmptySchool = () => {
-  console.log('Leere Schule einrichten auf Server:', store.selectedServer?.id);
-  // TODO: Backend call
+  showSchoolCreationModal.value = true;
+};
+
+const handleCreateEmptySchema = () => {
+  console.log('Leeres Schema anlegen auf Server:', store.selectedServer?.id);
+  // TODO: Backend call for empty schema creation
+};
+
+const handleImportBackup = () => {
+  console.log('Backup importieren auf Server:', store.selectedServer?.id);
+  // TODO: Backend call for backup import
+};
+
+const handleMigrateDatabase = () => {
+  console.log('SchILD-NRW2 Datenbank migrieren auf Server:', store.selectedServer?.id);
+  // TODO: Backend call for database migration
+};
+
+const showSchoolInfo = (school: any) => {
+  selectedSchoolInfo.value = school;
+  showSchoolInfoModal.value = true;
 };
 
 const canCreate = computed(() =>
@@ -229,6 +253,12 @@ const testConnection = async (serverId: string) => {
   }
 };
 
+const refreshAllConnections = async () => {
+  for (const server of store.servers) {
+    await testConnection(server.id);
+  }
+};
+
 const deleteServer = async (id: string) => {
   if (confirm("Are you sure you want to delete this SVWS server?")) {
     await store.deleteServer(id);
@@ -246,9 +276,19 @@ onMounted(() => {
     <section v-if="!store.selectedServer" class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h2>SVWS Server</h2>
-        <button type="button" @click="showForm = !showForm">
-          {{ showForm ? "Abbrechen" : "+ Server hinzufügen" }}
-        </button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" @click="refreshAllConnections" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Connection
+          </button>
+          <button type="button" @click="showForm = !showForm">
+            {{ showForm ? "Abbrechen" : "+ Server hinzufügen" }}
+          </button>
+        </div>
       </div>
 
       <!-- Add Server Form -->
@@ -300,7 +340,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-for="server in filteredAndSortedServers" :key="server.id">
-            <td>
+            <td class="server-name">
               <strong>{{ server.name }}</strong>
             </td>
             <td>{{ server.baseUrl }}</td>
@@ -309,7 +349,6 @@ onMounted(() => {
               <div class="status" :class="statusClass(server.status)">
                 {{ server.status }}
               </div>
-              <div class="helper" v-if="server.lastError">{{ server.lastError }}</div>
             </td>
             <td>
               <div class="action-buttons">
@@ -318,7 +357,7 @@ onMounted(() => {
                   type="button" 
                   @click="testConnection(server.id)"
                   title="Verbindung testen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M12 6v6l4 2"></path>
                   </svg>
@@ -328,7 +367,7 @@ onMounted(() => {
                   type="button" 
                   @click="viewSchools(server.id)"
                   title="Schulen anzeigen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     <polyline points="9 22 9 12 15 12 15 22"></polyline>
                   </svg>
@@ -338,7 +377,7 @@ onMounted(() => {
                   type="button" 
                   @click="deleteServer(server.id)"
                   title="Löschen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"></path>
                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -363,26 +402,24 @@ onMounted(() => {
           <h2>Schulen auf: {{ store.selectedServer.name }}</h2>
           <p class="helper">{{ store.selectedServer.baseUrl }}</p>
         </div>
-        <button class="secondary" type="button" @click="store.clearSelection">
-          Zurück zur Serverliste
-        </button>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button type="button" @click="createEmptySchool" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
+              <path d="M12 5v14"></path>
+              <path d="M5 12h14"></path>
+            </svg>
+            Neue Schule
+          </button>
+          <button class="secondary" type="button" @click="store.clearSelection">
+            Zurück zur Serverliste
+          </button>
+        </div>
       </div>
 
       <div v-if="store.loadingSchools" class="loading">Laden...</div>
       <div v-else-if="store.error" class="error-text">{{ store.error }}</div>
 
       <div v-else>
-        <!-- New School Button -->
-        <div class="school-header-actions">
-          <button type="button" @click="createEmptySchool" class="secondary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-              <path d="M12 5v14"></path>
-              <path d="M5 12h14"></path>
-            </svg>
-            Leere Schule einrichten
-          </button>
-        </div>
-
         <!-- Action Toolbar -->
         <div class="school-actions-toolbar">
           <button type="button" @click="createBackup" class="secondary">
@@ -442,7 +479,7 @@ onMounted(() => {
                   title="Alle auswählen"
                 />
               </th>
-              <th class="sortable" @click="toggleSchoolSort('schulnummer')">
+              <th class="sortable" @click="toggleSchoolSort('schulnummer')" style="width: 120px;">
               Schulnummer
               <span class="sort-indicator" v-if="schoolSortBy === 'schulnummer'">
                 {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
@@ -454,8 +491,8 @@ onMounted(() => {
                 {{ schoolSortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
-            <th>Ort</th>
-            <th>PLZ</th>
+            <th style="width: 150px;">Schema</th>
+            <th style="width: 60px;">Aktionen</th>
           </tr>
         </thead>
         <tbody>
@@ -468,19 +505,49 @@ onMounted(() => {
                 @change="toggleSchoolSelection(school._uid)"
               />
             </td>
-            <td><strong>{{ school.schulnummer }}</strong></td>
-            <td>{{ school.name }}</td>
-            <td>{{ school.ort }}</td>
-            <td>{{ school.plz }}</td>
+            <td style="width: 120px;"><strong>{{ school.schulnummer }}</strong></td>
+            <td class="school-name">{{ school.name }}</td>
+            <td style="width: 150px;">{{ school.schema }}</td>
+            <td>
+              <div class="action-buttons">
+                <button 
+                  class="icon-button secondary" 
+                  type="button" 
+                  @click="showSchoolInfo(school)"
+                  title="Informationen anzeigen">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <path d="M12 17h.01"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
           </tr>
           <tr v-if="!filteredAndSortedSchools.length">
-            <td colspan="5">Keine Schulen gefunden.</td>
+            <td colspan="4">Keine Schulen gefunden.</td>
           </tr>
         </tbody>
       </table>
       </div>
     </section>
   </div>
+
+  <!-- School Creation Modal -->
+  <SchoolCreationModal
+    :visible="showSchoolCreationModal"
+    @close="showSchoolCreationModal = false"
+    @createEmptySchema="handleCreateEmptySchema"
+    @importBackup="handleImportBackup"
+    @migrateDatabase="handleMigrateDatabase"
+  />
+
+  <!-- School Info Modal -->
+  <SchoolInfoModal
+    :visible="showSchoolInfoModal"
+    :schule="selectedSchoolInfo"
+    @close="showSchoolInfoModal = false"
+  />
 </template>
 
 <style scoped>
@@ -513,10 +580,11 @@ onMounted(() => {
 }
 
 .icon-button {
-  padding: 0.5rem;
+  --icon-size: 16px;
+  padding: 0.35rem;
   min-width: unset;
-  width: 36px;
-  height: 36px;
+  width: calc(var(--icon-size) + 0.7rem);
+  height: calc(var(--icon-size) + 0.7rem);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -526,6 +594,8 @@ onMounted(() => {
 }
 
 .icon-button svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
   display: block;
 }
 
@@ -616,6 +686,20 @@ button.danger:active,
   white-space: nowrap;
 }
 
+.school-name {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-name {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .school-header-actions {
   margin-bottom: 1rem;
 }
@@ -642,17 +726,24 @@ button.danger:active,
 }
 
 input[type="checkbox"] {
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #0f766e;
-  border-radius: 3px;
-  background-color: transparent;
-  outline: none;
-  transition: all 0.15s ease;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid #0f766e !important;
+  border-radius: 3px !important;
+  background-color: transparent !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 input[type="checkbox"]:hover {
@@ -661,16 +752,34 @@ input[type="checkbox"]:hover {
 }
 
 input[type="checkbox"]:checked {
-  background-color: #0891b2;
-  border-color: #0891b2;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
-  background-size: 100%;
-  background-repeat: no-repeat;
-  background-position: center;
+  background-color: #0891b2 !important;
+  border-color: #0891b2 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E") !important;
+  background-size: 100% !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
 }
 
 input[type="checkbox"]:checked:hover {
-  background-color: #06b6d4;
-  border-color: #06b6d4;
+  background-color: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+}
+</style>
+
+<style scoped>
+/* Ensure consistent button heights in header */
+.panel > div:first-child .secondary {
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  padding: 8px 16px !important;
+  white-space: nowrap !important;
+}
+
+.panel > div:first-child .secondary svg {
+  flex-shrink: 0 !important;
+  margin: 0 !important;
 }
 </style>

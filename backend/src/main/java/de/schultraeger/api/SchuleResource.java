@@ -6,6 +6,7 @@ import de.schultraeger.application.SchuleNotFoundException;
 import de.schultraeger.application.SchuleService;
 import de.schultraeger.application.dto.SchuleCreateData;
 import de.schultraeger.application.dto.SchuleUpdateData;
+import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.domain.Schule;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.Consumes;
@@ -76,6 +77,16 @@ public class SchuleResource {
         }
     }
 
+    @GET
+    @Path("/{id}/svws-info")
+    public SvwsSchuleInfo getSvwsInfo(@PathParam("id") UUID id) {
+        try {
+            return service.getSvwsSchoolInfo(id);
+        } catch (SchuleNotFoundException ex) {
+            throw new jakarta.ws.rs.NotFoundException(ex.getMessage());
+        }
+    }
+
     private static SchuleCreateData toCreateData(SchuleRequest request) {
         return new SchuleCreateData(
                 request.name(),
@@ -109,7 +120,23 @@ public class SchuleResource {
                 schule.lastSyncStatus(),
                 schule.lastError(),
                 schule.createdAt(),
-                schule.updatedAt()
+                schule.updatedAt(),
+                schule.strasse(),
+                schule.hausnummer(),
+                schule.hausnummerZusatz(),
+                schule.plz(),
+                schule.ort(),
+                schule.telefon(),
+                schule.fax(),
+                schule.email(),
+                schule.homepage(),
+                schule.schulleiter(),
+                schule.schulleiterTelefon(),
+                schule.schulleiterEmail(),
+                schule.kreis(),
+                schule.schulamt(),
+                schule.schulnummer2(),
+                schule.schulstatus()
         );
     }
 }
