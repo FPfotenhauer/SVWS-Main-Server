@@ -1,1 +1,0 @@
--- V6 content moved to V1 initial schema

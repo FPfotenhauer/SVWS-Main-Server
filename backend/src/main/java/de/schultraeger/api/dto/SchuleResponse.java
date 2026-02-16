@@ -1,8 +1,5 @@
 package de.schultraeger.api.dto;
 
-import de.schultraeger.domain.SchuleStatus;
-import de.schultraeger.domain.SyncStatus;
-
 import java.time.Instant;
 import java.util.UUID;
 
