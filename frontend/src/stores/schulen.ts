@@ -25,16 +25,6 @@ export const useSchulenStore = defineStore("schulen", {
       this.error = "";
       const response = await api.post<Schule>("/api/schulen", payload);
       this.items = [response.data, ...this.items];
-    },
-    async verify(id: string) {
-      this.error = "";
-      const response = await api.post<Schule>(`/api/schulen/${id}/verify`);
-      this.items = this.items.map((item) => (item.id === id ? response.data : item));
-    },
-    async sync(id: string) {
-      this.error = "";
-      const response = await api.post<Schule>(`/api/schulen/${id}/sync`);
-      this.items = this.items.map((item) => (item.id === id ? response.data : item));
     }
   }
 });

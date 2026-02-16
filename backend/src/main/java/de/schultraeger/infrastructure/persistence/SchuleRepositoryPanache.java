@@ -30,10 +30,20 @@ public class SchuleRepositoryPanache implements SchuleRepository, PanacheReposit
     }
 
     @Override
+    public Optional<Schule> findByServerIdAndSchema(UUID svwsServerId, String svwsSchema) {
+        return find("svwsServerId = ?1 AND svwsSchema = ?2", svwsServerId, svwsSchema)
+            .firstResultOptional()
+            .map(mapper::toDomain);
+    }
+
+    @Override
     @Transactional
     public Schule saveSchool(Schule schule) {
+        System.out.println("DEBUG: Repository saving school: " + schule.svwsSchema());
         SchuleEntity entity = mapper.toEntity(schule);
         persist(entity);
+        flush();
+        System.out.println("DEBUG: Repository saved and flushed school: " + entity.id);
         return mapper.toDomain(entity);
     }
 
@@ -46,5 +56,11 @@ public class SchuleRepositoryPanache implements SchuleRepository, PanacheReposit
         }
         mapper.updateEntity(entity, schule);
         return mapper.toDomain(entity);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByServerId(UUID svwsServerId) {
+        delete("svwsServerId", svwsServerId);
     }
 }

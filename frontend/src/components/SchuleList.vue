@@ -9,8 +9,7 @@ const showInfoModal = ref(false);
 const selectedSchule = ref<Schule | null>(null);
 
 const form = ref<SchuleRequest>({
-  name: "",
-  svwsUrl: "",
+  svwsServerId: "",
   svwsSchema: "",
   svwsUsername: "",
   svwsPassword: ""
@@ -30,8 +29,7 @@ const formatted = (value?: string | null) => {
 };
 
 const canCreate = computed(() =>
-  form.value.name &&
-  form.value.svwsUrl &&
+  form.value.svwsServerId &&
   form.value.svwsSchema &&
   form.value.svwsUsername &&
   form.value.svwsPassword
@@ -40,28 +38,16 @@ const canCreate = computed(() =>
 const create = async () => {
   await store.create(form.value);
   form.value = {
-    name: "",
-    svwsUrl: "",
+    svwsServerId: "",
     svwsSchema: "",
     svwsUsername: "",
     svwsPassword: ""
   };
 };
 
-const showSchoolInfo = async (schule: any) => {
+const showSchoolInfo = (schule: any) => {
   selectedSchule.value = schule;
   showInfoModal.value = true;
-  // Sync the school data when opening the info modal
-  try {
-    await store.sync(schule.id);
-    // Update the selected school with the latest data
-    const updated = store.items.find(s => s.id === schule.id);
-    if (updated) {
-      selectedSchule.value = updated;
-    }
-  } catch (err) {
-    console.error("Failed to sync school:", err);
-  }
 };
 
 onMounted(() => {
@@ -73,8 +59,7 @@ onMounted(() => {
   <section class="panel">
     <h2>Schule anlegen</h2>
     <div class="form-grid">
-      <input v-model="form.name" placeholder="Name" />
-      <input v-model="form.svwsUrl" placeholder="SVWS URL" />
+      <input v-model="form.svwsServerId" placeholder="SVWS Server ID" />
       <input v-model="form.svwsSchema" placeholder="Schema" />
       <input v-model="form.svwsUsername" placeholder="SVWS Username" />
       <input v-model="form.svwsPassword" placeholder="SVWS Passwort" type="password" />
@@ -89,37 +74,19 @@ onMounted(() => {
     <table class="table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Schulnummer</th>
-          <th>Status</th>
-          <th>Letzter Sync</th>
+          <th>Schema</th>
+          <th>Erstellt am</th>
           <th>Aktionen</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="schule in store.items" :key="schule.id">
           <td>
-            <strong>{{ schule.name }}</strong>
-            <div class="helper">{{ schule.svwsUrl }}</div>
+            <strong>{{ schule.svwsSchema }}</strong>
+            <div class="helper">{{ schule.svwsServerName }}</div>
           </td>
-          <td>{{ schule.schulnummer ?? "-" }}</td>
+          <td>{{ formatted(schule.createdAt) }}</td>
           <td>
-            <div class="status" :class="statusClass(schule.status)">
-              {{ schule.status }}
-            </div>
-            <div class="helper" v-if="schule.lastError">{{ schule.lastError }}</div>
-          </td>
-          <td>
-            <div>{{ formatted(schule.lastSyncAt) }}</div>
-            <div class="status" :class="statusClass(schule.lastSyncStatus)">
-              {{ schule.lastSyncStatus ?? "-" }}
-            </div>
-          </td>
-          <td>
-            <button class="secondary" type="button" @click="store.verify(schule.id)">
-              Verbindung testen
-            </button>
-            <button type="button" @click="store.sync(schule.id)">Synchronisieren</button>
             <button class="icon-button secondary" type="button" @click="showSchoolInfo(schule)" title="Informationen anzeigen">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -130,7 +97,7 @@ onMounted(() => {
           </td>
         </tr>
         <tr v-if="!store.items.length">
-          <td colspan="5">Keine Schulen vorhanden.</td>
+          <td colspan="3">Keine Schulen vorhanden.</td>
         </tr>
       </tbody>
     </table>

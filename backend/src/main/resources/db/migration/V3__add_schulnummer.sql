@@ -1,2 +1,1 @@
-ALTER TABLE schule
-    ADD COLUMN schulnummer BIGINT;
+-- Consolidated into V1

@@ -14,7 +14,11 @@ public interface SchuleRepository {
 
     Optional<Schule> findSchoolById(UUID id);
 
+    Optional<Schule> findByServerIdAndSchema(UUID svwsServerId, String svwsSchema);
+
     Schule saveSchool(Schule schule);
 
     Schule updateSchool(Schule schule);
+
+    void deleteByServerId(UUID svwsServerId);
 }

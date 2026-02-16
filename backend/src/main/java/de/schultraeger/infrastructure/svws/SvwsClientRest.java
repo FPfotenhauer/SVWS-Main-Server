@@ -94,6 +94,7 @@ public class SvwsClientRest implements SvwsClient {
 
     @Override
     public java.util.List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+        System.out.println("DEBUG: SvwsClientRest.listSchools for " + baseUrl);
         HttpClient client = buildHttpClient();
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -106,32 +107,32 @@ public class SvwsClientRest implements SvwsClient {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             
             if (response.statusCode() != 200) {
-                log.warnf("SVWS listSchools failed with status %d", response.statusCode());
+                System.err.println("DEBUG: listSchools failed with status " + response.statusCode());
+                System.err.println("DEBUG: Response body: " + response.body());
                 throw new SvwsClientException("SVWS listSchools failed with status " + response.statusCode(), response.statusCode(), null);
             }
             
             java.util.List<de.schultraeger.application.dto.SchemaListeEintrag> schemas = 
                     objectMapper.readValue(response.body(), new TypeReference<java.util.List<de.schultraeger.application.dto.SchemaListeEintrag>>() {});
             
-            log.debugf("Found %d SVWS schemas, filtering and fetching school info", schemas.size());
+            System.out.println("DEBUG: Found " + schemas.size() + " total schemas on SVWS server");
             
             return schemas.stream()
-                .filter(schema -> Boolean.TRUE.equals(schema.isSVWS()))
-                .filter(schema -> !Boolean.TRUE.equals(schema.isTainted()))
-                .filter(schema -> !Boolean.TRUE.equals(schema.isDeactivated()))
                 .map(schema -> {
                     try {
+                        System.out.println("DEBUG: Fetching info for schema " + schema.name());
                         SvwsSchuleInfo info = getSchuleInfo(baseUrl, schema.name(), username, password);
                         return withSchema(info, schema.name());
                     } catch (Exception ex) {
-                        log.warnf("Failed to get info for schema %s: %s", schema.name(), ex.getMessage());
+                        System.err.println("DEBUG: Failed to get info for schema " + schema.name() + ": " + ex.getMessage());
                         return null;
                     }
                 })
                 .filter(info -> info != null)
                 .toList();
         } catch (Exception ex) {
-            log.errorf(ex, "SVWS listSchools failed");
+            System.err.println("DEBUG: listSchools total failure: " + ex.getMessage());
+            ex.printStackTrace();
             throw new SvwsClientException("SVWS listSchools failed", -1, ex);
         }
     }
