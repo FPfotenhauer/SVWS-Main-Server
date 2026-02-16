@@ -70,14 +70,9 @@ public class SvwsServerService {
         managedExecutor.submit(() -> {
             try {
                 System.out.println("DEBUG: Starting background school discovery for server " + server.name() + " (" + server.id() + ")");
-                // Reload server to ensure we have a fresh entity in this thread
-                Optional<SvwsServer> freshServer = repository.getById(server.id());
-                if (freshServer.isPresent()) {
-                    int imported = schuleService.importSchoolsFromSvwsServer(freshServer.get());
-                    updateStatusQuietly(server.id(), ServerStatus.CONNECTED, "Imported " + imported + " schools");
-                } else {
-                    System.err.println("DEBUG: Server not found during background discovery: " + server.id());
-                }
+                // Use the server parameter directly (already from DB), don't try to reload in background thread
+                int imported = schuleService.importSchoolsFromSvwsServer(server);
+                updateStatusQuietly(server.id(), ServerStatus.CONNECTED, "Imported " + imported + " schools");
             } catch (Exception e) {
                 System.err.println("DEBUG: Error in background school discovery: " + e.getMessage());
                 e.printStackTrace();
@@ -125,7 +120,7 @@ public class SvwsServerService {
         repository.delete(id);
     }
 
-    @Transactional
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public SvwsServer updateStatus(UUID id, ServerStatus status, String error) throws Exception {
         Optional<SvwsServer> existing = repository.getById(id);
         if (existing.isEmpty()) {

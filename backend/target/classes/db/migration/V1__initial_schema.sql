@@ -19,6 +19,8 @@ CREATE TABLE schule (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     svws_server_id UUID REFERENCES svws_servers(id) ON DELETE CASCADE,
     svws_schema VARCHAR(255) NOT NULL,
+    svws_username VARCHAR(255),
+    svws_user_password_encrypted VARCHAR(512),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

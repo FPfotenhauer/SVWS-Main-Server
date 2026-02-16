@@ -546,6 +546,7 @@ onMounted(() => {
   <SchoolInfoModal
     :visible="showSchoolInfoModal"
     :schule="selectedSchoolInfo"
+    :serverName="store.selectedServer?.name"
     @close="showSchoolInfoModal = false"
   />
 </template>
