@@ -14,3 +14,13 @@ export interface SchuleRequest {
   svwsUsername?: string;
   svwsPassword?: string;
 }
+
+export interface SchuleStammdatenResponse {
+  id: string;
+  schema: string;
+  serverName: string;
+  schulnummer?: number | null;
+  bezeichnung1?: string | null;
+  schulform?: string | null;
+  error?: string | null;
+}

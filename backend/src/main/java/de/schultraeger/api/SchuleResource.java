@@ -2,7 +2,9 @@ package de.schultraeger.api;
 
 import de.schultraeger.api.dto.SchuleResponse;
 import de.schultraeger.api.dto.SchuleRequest;
+import de.schultraeger.api.dto.SchuleStammdatenResponse;
 import de.schultraeger.application.SchuleService;
+import de.schultraeger.application.dto.SchuleStammdatenResult;
 import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
@@ -40,6 +42,15 @@ public class SchuleResource {
         return service.list().stream().map(this::toResponse).toList();
     }
 
+    @GET
+    @Path("stammdaten")
+    public List<SchuleStammdatenResponse> listStammdaten() {
+        return service.listStammdaten()
+                .stream()
+                .map(this::toStammdatenResponse)
+                .toList();
+    }
+
     @POST
     public Response create(SchuleRequest request) {
         Schule created = service.create(request);
@@ -75,6 +86,18 @@ public class SchuleResource {
                 schule.svwsUsername(),
                 schule.createdAt() != null ? schule.createdAt().toString() : null,
                 schule.updatedAt() != null ? schule.updatedAt().toString() : null
+        );
+    }
+
+    private SchuleStammdatenResponse toStammdatenResponse(SchuleStammdatenResult result) {
+        return new SchuleStammdatenResponse(
+                result.schuleId() != null ? result.schuleId().toString() : null,
+                result.svwsSchema(),
+                result.svwsServerName(),
+                result.stammdaten() != null ? result.stammdaten().schulNr() : null,
+                result.stammdaten() != null ? result.stammdaten().bezeichnung1() : null,
+                result.stammdaten() != null ? result.stammdaten().schulform() : null,
+                result.error()
         );
     }
 }

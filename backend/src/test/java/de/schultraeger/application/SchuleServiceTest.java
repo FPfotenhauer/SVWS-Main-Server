@@ -37,6 +37,10 @@ class SchuleServiceTest {
             @Override
             public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) { return null; }
             @Override
+            public de.schultraeger.application.dto.SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
             public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
                 return List.of(
                     createStubInfo("schema1"),
@@ -45,7 +49,7 @@ class SchuleServiceTest {
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher());
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
 
         int imported = service.importSchoolsFromSvwsServer(server);
 
@@ -62,7 +66,7 @@ class SchuleServiceTest {
         SvwsServer server = serverRepo.getById(SERVER_ID).get();
 
         // Already has schema1
-        service(repo).saveSchoolIfNew(server, createStubInfo("schema1"));
+        service(repo, serverRepo).saveSchoolIfNew(server, createStubInfo("schema1"));
         assertEquals(1, repo.findAllSchools().size());
 
         // Mock client returns schema1 and schema2
@@ -72,20 +76,24 @@ class SchuleServiceTest {
             @Override
             public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) { return null; }
             @Override
+            public de.schultraeger.application.dto.SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
             public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
                 return List.of(createStubInfo("schema1"), createStubInfo("schema2"));
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher());
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
         int imported = service.importSchoolsFromSvwsServer(server);
 
         assertEquals(1, imported); // Only schema2 is new
         assertEquals(2, repo.findAllSchools().size());
     }
 
-    private SchuleService service(SchuleRepository repo) {
-        return new SchuleService(repo, null, new StubCipher());
+    private SchuleService service(SchuleRepository repo, SvwsServerRepository serverRepo) {
+        return new SchuleService(repo, null, new StubCipher(), serverRepo);
     }
 
     private SvwsSchuleInfo createStubInfo(String schema) {
