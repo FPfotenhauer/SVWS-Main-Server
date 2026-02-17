@@ -2,6 +2,8 @@ package de.schultraeger.application;
 
 import de.schultraeger.application.dto.SchuleStammdaten;
 import de.schultraeger.application.dto.SchuleStammdatenResult;
+import de.schultraeger.application.dto.SchuleStatistikenGesamt;
+import de.schultraeger.application.dto.SchuleStatistikenRaw;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.application.port.out.PasswordCipher;
 import de.schultraeger.application.port.out.SvwsClient;
@@ -16,7 +18,9 @@ import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -245,6 +249,139 @@ public class SchuleService {
                 message
             );
         }
+    }
+
+    public SchuleStatistikenGesamt getStatistiken(UUID schuleId) {
+        Schule schule = getById(schuleId);
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + schuleId));
+
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            throw new IllegalStateException("Fehler beim Lesen der Anmeldedaten", ex);
+        }
+
+        if (credentials == null) {
+            throw new IllegalStateException("Anmeldedaten fehlen für Schule " + schuleId);
+        }
+
+        try {
+            SchuleStatistikenRaw rawData = svwsClient.getSchuleStatistiken(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1]
+            );
+            return computeAggregates(rawData);
+        } catch (SvwsClientException ex) {
+            LOG.warnf(ex, "Statistiken nicht erreichbar für Schema %s (Status %d)", schule.svwsSchema(), ex.getStatusCode());
+            throw new IllegalStateException("Statistiken nicht erreichbar: " + ex.getMessage(), ex);
+        }
+    }
+
+    private SchuleStatistikenGesamt computeAggregates(SchuleStatistikenRaw rawData) {
+        List<SchuleStatistikenRaw.Schueler> students = rawData.schueler();
+        if (students == null) {
+            students = List.of();
+        }
+
+        // Basic counts
+        int totalStudents = students.size();
+        int maleStudents = (int) students.stream().filter(s -> s.geschlecht() != null && s.geschlecht() == 4).count();
+        int femaleStudents = (int) students.stream().filter(s -> s.geschlecht() != null && s.geschlecht() == 3).count();
+        int studentsWithSpecialNeeds = (int) students.stream()
+                .filter(s -> s.idFoerderschwerpunkt1() != null || s.idFoerderschwerpunkt2() != null)
+                .count();
+        int studentsWithMigrationBackground = (int) students.stream()
+                .filter(s -> s.hatMigrationshintergrund() != null && s.hatMigrationshintergrund())
+                .count();
+
+        // Abitur counts
+        int abiStudentsEligible = (int) students.stream()
+                .filter(s -> s.abitur() != null)
+                .count();
+        int abiStudentsPassed = (int) students.stream()
+                .filter(s -> s.abitur() != null && s.abitur().hatBestanden() != null && s.abitur().hatBestanden())
+                .count();
+
+        // Grade distribution
+        Map<Integer, Integer> gradeCountsById = new HashMap<>();
+        Map<Integer, String> gradeNamesById = new HashMap<>();
+        if (rawData.jahrgaenge() != null) {
+            for (SchuleStatistikenRaw.Jahrgang jg : rawData.jahrgaenge()) {
+                gradeNamesById.put(jg.id(), jg.kuerzel());
+            }
+        }
+
+        for (SchuleStatistikenRaw.Schueler student : students) {
+            if (student.lernabschnitte() != null) {
+                for (SchuleStatistikenRaw.Lernabschnitt la : student.lernabschnitte()) {
+                    gradeCountsById.merge(la.idJahrgang(), 1, Integer::sum);
+                }
+            }
+        }
+
+        List<SchuleStatistikenGesamt.GradeStatistic> studentsByGrade = gradeCountsById.entrySet().stream()
+                .map(e -> new SchuleStatistikenGesamt.GradeStatistic(
+                        gradeNamesById.getOrDefault(e.getKey(), "Grade " + e.getKey()),
+                        e.getValue()
+                ))
+                .sorted((a, b) -> {
+                    // Get grade IDs for sorting
+                    Integer aGradeId = gradeNamesById.entrySet().stream()
+                            .filter(kv -> kv.getValue().equals(a.gradeName()))
+                            .map(Map.Entry::getKey)
+                            .findFirst()
+                            .orElse(Integer.MAX_VALUE);
+                    Integer bGradeId = gradeNamesById.entrySet().stream()
+                            .filter(kv -> kv.getValue().equals(b.gradeName()))
+                            .map(Map.Entry::getKey)
+                            .findFirst()
+                            .orElse(Integer.MAX_VALUE);
+                    return Integer.compare(aGradeId, bGradeId);
+                })
+                .toList();
+
+        // Top locations (top 5)
+        Map<Integer, Integer> locationCounts = new HashMap<>();
+        students.forEach(s -> {
+            if (s.wohnortID() != null) {
+                locationCounts.merge(s.wohnortID(), 1, Integer::sum);
+            }
+        });
+
+        Map<Integer, SchuleStatistikenRaw.Ort> ortesById = new HashMap<>();
+        if (rawData.orte() != null) {
+            for (SchuleStatistikenRaw.Ort ort : rawData.orte()) {
+                ortesById.put(ort.id(), ort);
+            }
+        }
+
+        List<SchuleStatistikenGesamt.LocationStatistic> topLocations = locationCounts.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .map(e -> {
+                    SchuleStatistikenRaw.Ort ort = ortesById.get(e.getKey());
+                    String locationName = ort != null ? ort.ortsname() : "Unbekannt";
+                    String postalCode = ort != null ? ort.plz() : "";
+                    return new SchuleStatistikenGesamt.LocationStatistic(locationName, postalCode, e.getValue());
+                })
+                .toList();
+
+        return new SchuleStatistikenGesamt(
+                totalStudents,
+                maleStudents,
+                femaleStudents,
+                studentsWithSpecialNeeds,
+                studentsWithMigrationBackground,
+                abiStudentsEligible,
+                abiStudentsPassed,
+                studentsByGrade,
+                topLocations
+        );
     }
 
     private String[] resolveCredentials(Schule schule, SvwsServer server) {

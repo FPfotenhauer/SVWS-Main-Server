@@ -5,6 +5,7 @@ import de.schultraeger.api.dto.SchuleRequest;
 import de.schultraeger.api.dto.SchuleStammdatenResponse;
 import de.schultraeger.application.SchuleService;
 import de.schultraeger.application.dto.SchuleStammdatenResult;
+import de.schultraeger.application.dto.SchuleStatistikenGesamt;
 import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
@@ -49,6 +50,12 @@ public class SchuleResource {
                 .stream()
                 .map(this::toStammdatenResponse)
                 .toList();
+    }
+
+    @GET
+    @Path("{id}/statistiken")
+    public SchuleStatistikenGesamt getStatistiken(@PathParam("id") UUID id) {
+        return service.getStatistiken(id);
     }
 
     @POST

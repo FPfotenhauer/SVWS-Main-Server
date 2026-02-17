@@ -125,6 +125,75 @@
           <label>Fehler</label>
           <div class="field-value error">{{ selectedItem.error }}</div>
         </div>
+
+        <!-- Statistics Section -->
+        <div v-if="statisticsLoading" class="stats-loading">
+          <span class="pulse-small"></span>
+          <p>Statistiken werden geladen …</p>
+        </div>
+
+        <div v-else-if="statisticsError" class="stats-error">
+          <p>{{ statisticsError }}</p>
+        </div>
+
+        <div v-else-if="statistics">
+          <div class="stats-section-title">Schülerstatistiken</div>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Gesamtschüler</div>
+              <div class="stat-value">{{ statistics.totalStudents }}</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Männlich / Weiblich</div>
+              <div class="stat-value">{{ statistics.maleStudents }} / {{ statistics.femaleStudents }}</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Mit Förderschwerpunkt</div>
+              <div class="stat-value">{{ statistics.studentsWithSpecialNeeds }}</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Mit Migrationshintergrund</div>
+              <div class="stat-value">{{ statistics.studentsWithMigrationBackground }}</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Abitur berechtigt</div>
+              <div class="stat-value">{{ statistics.abiStudentsEligible }}</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-label">Abitur bestanden</div>
+              <div class="stat-value">{{ statistics.abiStudentsPassed }}</div>
+            </div>
+          </div>
+
+          <div v-if="statistics.studentsByGrade && statistics.studentsByGrade.length" class="stats-subsection">
+            <div class="subsection-title">Schüler nach Jahrgängen</div>
+            <div class="grade-grid">
+              <div v-for="grade in statistics.studentsByGrade" :key="grade.gradeName" class="grade-tile">
+                <div class="grade-name">{{ grade.gradeName }}</div>
+                <div class="grade-count-tile">{{ grade.count }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="statistics.topLocations && statistics.topLocations.length" class="stats-subsection">
+            <div class="subsection-title">Top Wohnorte</div>
+            <div class="location-list">
+              <div v-for="loc in statistics.topLocations" :key="loc.locationName" class="location-item">
+                <span class="location-info">
+                  <span class="location-name">{{ loc.locationName }}</span>
+                  <span class="location-code">({{ loc.postalCode }})</span>
+                </span>
+                <span class="location-count">{{ loc.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -135,6 +204,25 @@ import { ref, onMounted, computed } from 'vue';
 import api from '../services/api';
 import type { SchuleStammdatenResponse } from '../types/schule';
 
+interface SchuleStatistikenGesamt {
+  totalStudents: number;
+  maleStudents: number;
+  femaleStudents: number;
+  studentsWithSpecialNeeds: number;
+  studentsWithMigrationBackground: number;
+  abiStudentsEligible: number;
+  abiStudentsPassed: number;
+  studentsByGrade: Array<{
+    gradeName: string;
+    count: number;
+  }>;
+  topLocations: Array<{
+    locationName: string;
+    postalCode: string;
+    count: number;
+  }>;
+}
+
 const items = ref<SchuleStammdatenResponse[]>([]);
 const loading = ref(false);
 const error = ref('');
@@ -143,6 +231,9 @@ const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const showModal = ref(false);
 const selectedItem = ref<SchuleStammdatenResponse | null>(null);
+const statistics = ref<SchuleStatistikenGesamt | null>(null);
+const statisticsLoading = ref(false);
+const statisticsError = ref('');
 
 const filteredItems = computed(() => {
   if (!searchQuery.value) return items.value;
@@ -188,14 +279,28 @@ const statusClass = (item: SchuleStammdatenResponse) => {
   return item.error ? 'status-badge error' : 'status-badge success';
 };
 
-const openModal = (item: SchuleStammdatenResponse) => {
+const openModal = async (item: SchuleStammdatenResponse) => {
   selectedItem.value = item;
+  statistics.value = null;
+  statisticsError.value = '';
   showModal.value = true;
+
+  // Fetch statistics when modal opens
+  statisticsLoading.value = true;
+  try {
+    const response = await api.get<SchuleStatistikenGesamt>(`/api/schulen/${item.id}/statistiken`);
+    statistics.value = response.data;
+  } catch (err: any) {
+    statisticsError.value = err.response?.data?.message || err.message || 'Fehler beim Laden der Statistiken';
+  } finally {
+    statisticsLoading.value = false;
+  }
 };
 
 const closeModal = () => {
   showModal.value = false;
   selectedItem.value = null;
+  statistics.value = null;
 };
 
 onMounted(loadStammdaten);
@@ -593,5 +698,166 @@ tbody tr:last-child {
   .field-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Statistics Styles */
+.stats-loading,
+.stats-error {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #e2e8f0;
+}
+
+.stats-error {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+}
+
+.pulse-small {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38bdf8;
+  animation: pulse 1.2s infinite;
+}
+
+.stats-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 1.5rem 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.stats-subsection {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 8px;
+}
+
+.subsection-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(226, 232, 240, 0.6);
+  margin-bottom: 0.75rem;
+}
+
+.grade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.grade-tile {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grade-tile .grade-name {
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.7);
+  font-weight: 600;
+}
+
+.grade-count-tile {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.location-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.location-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  font-size: 0.9rem;
+}
+
+.location-item:last-child {
+  border-bottom: none;
+}
+
+.location-name {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.location-code {
+  color: rgba(226, 232, 240, 0.5);
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.location-info {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.location-count {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 </style>

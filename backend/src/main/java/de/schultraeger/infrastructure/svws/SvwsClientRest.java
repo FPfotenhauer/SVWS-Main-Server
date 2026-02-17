@@ -1,6 +1,7 @@
 package de.schultraeger.infrastructure.svws;
 
 import de.schultraeger.application.dto.SchuleStammdaten;
+import de.schultraeger.application.dto.SchuleStatistikenRaw;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
@@ -117,6 +118,33 @@ public class SvwsClientRest implements SvwsClient {
         } catch (Exception ex) {
             log.errorf(ex, "SVWS getSchuleStammdaten failed for schema %s", schema);
             throw new SvwsClientException("SVWS getSchuleStammdaten failed", -1, ex);
+        }
+    }
+
+    @Override
+    public SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password) {
+        HttpClient client = buildHttpClient();
+        try {
+            String encodedSchema = schema != null ? URLEncoder.encode(schema, StandardCharsets.UTF_8) : "";
+            String url = baseUrl + "/db/" + encodedSchema + "/statistik/gesamt";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(60))  // Statistics can be large, use longer timeout
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                return objectMapper.readValue(response.body(), SchuleStatistikenRaw.class);
+            }
+            log.warnf("SVWS getSchuleStatistiken failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS getSchuleStatistiken failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS getSchuleStatistiken failed for schema %s", schema);
+            throw new SvwsClientException("SVWS getSchuleStatistiken failed", -1, ex);
         }
     }
 

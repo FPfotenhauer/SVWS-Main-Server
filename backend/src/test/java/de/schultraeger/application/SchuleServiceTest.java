@@ -41,6 +41,10 @@ class SchuleServiceTest {
                 return null;
             }
             @Override
+            public de.schultraeger.application.dto.SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
             public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
                 return List.of(
                     createStubInfo("schema1"),
@@ -77,6 +81,10 @@ class SchuleServiceTest {
             public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) { return null; }
             @Override
             public de.schultraeger.application.dto.SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
+            public de.schultraeger.application.dto.SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password) {
                 return null;
             }
             @Override
