@@ -61,7 +61,7 @@
                 <span v-else class="muted">Schulname fehlt</span>
               </td>
               <td class="status-cell">
-                <button class="details-btn" title="Details anzeigen">Details</button>
+                <button class="details-btn" title="Details anzeigen" @click="openModal(item)">Details</button>
                 <span :class="statusClass(item)">
                   {{ item.error ? 'Fehler' : 'Ok' }}
                 </span>
@@ -95,6 +95,39 @@
       </div>
     </div>
   </section>
+
+  <div v-if="showModal && selectedItem" class="modal-overlay" @click="closeModal">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3>Schule Details</h3>
+        <button class="modal-close" @click="closeModal" title="Schließen">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field-group">
+            <label>Schulnummer</label>
+            <div class="field-value">{{ selectedItem.schulnummer ? selectedItem.schulnummer : '–' }}</div>
+          </div>
+          
+          <div class="field-group">
+            <label>Schulform</label>
+            <div class="field-value">{{ selectedItem.schulform ? selectedItem.schulform : '–' }}</div>
+          </div>
+          
+          <div class="field-group">
+            <label>Schulname</label>
+            <div class="field-value">{{ selectedItem.bezeichnung1 ? selectedItem.bezeichnung1 : 'nicht vorhanden' }}</div>
+          </div>
+        </div>
+        
+        <div v-if="selectedItem.error" class="field-group">
+          <label>Fehler</label>
+          <div class="field-value error">{{ selectedItem.error }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -108,6 +141,8 @@ const error = ref('');
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
+const showModal = ref(false);
+const selectedItem = ref<SchuleStammdatenResponse | null>(null);
 
 const filteredItems = computed(() => {
   if (!searchQuery.value) return items.value;
@@ -151,6 +186,16 @@ const loadStammdaten = async () => {
 
 const statusClass = (item: SchuleStammdatenResponse) => {
   return item.error ? 'status-badge error' : 'status-badge success';
+};
+
+const openModal = (item: SchuleStammdatenResponse) => {
+  selectedItem.value = item;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  selectedItem.value = null;
 };
 
 onMounted(loadStammdaten);
@@ -429,6 +474,124 @@ tbody tr:last-child {
   th,
   td {
     padding: 0.2rem 0.3rem;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 16px;
+  width: 95%;
+  max-width: 1200px;
+  height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  color: rgba(226, 232, 240, 0.8);
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.modal-close:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 1.5rem 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.field-group {
+  margin-bottom: 1rem;
+}
+
+.field-group:last-child {
+  margin-bottom: 0;
+}
+
+.field-group label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(226, 232, 240, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+.field-value {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+.field-value.error {
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+@media (max-width: 1024px) {
+  .field-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .field-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>
