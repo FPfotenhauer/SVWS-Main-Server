@@ -14,6 +14,18 @@
       </button>
     </header>
 
+    <div class="search-bar">
+      <input 
+        v-model="searchQuery" 
+        type="text" 
+        placeholder="Nach Schulnummer, Schulform oder Name suchen …"
+        class="search-input"
+      />
+      <span class="search-results">
+        {{ filteredItems.length }} von {{ items.length }} Schulen
+      </span>
+    </div>
+
     <div v-if="loading" class="loading-state">
       <span class="pulse"></span>
       <p>Daten werden aus den SVWS-Stammdaten geladen …</p>
@@ -24,10 +36,9 @@
         <strong>Fehler:</strong> {{ error }}
       </div>
 
-      <div v-if="!items.length && !error" class="empty-state">
+      <div v-if="!paginatedItems.length && !error" class="empty-state">
         <p>
-          Keine Stammdaten verfügbar. Bitte legen Sie die Anmeldedaten zu mindestens einer Schule über den
-          Bereich "Verwaltete Schulen" an.
+          {{ searchQuery ? 'Keine Schulen gefunden.' : 'Keine Stammdaten verfügbar. Bitte legen Sie die Anmeldedaten zu mindestens einer Schule über den Bereich "Verwaltete Schulen" an.' }}
         </p>
       </div>
 
@@ -42,7 +53,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in items" :key="item.id + '-' + item.schema">
+            <tr v-for="item in paginatedItems" :key="item.id + '-' + item.schema">
               <td>{{ item.schulnummer ?? '–' }}</td>
               <td>{{ item.schulform ?? '–' }}</td>
               <td>
@@ -59,19 +70,65 @@
             </tr>
           </tbody>
         </table>
+
+        <div v-if="totalPages > 1" class="pagination">
+          <button 
+            :disabled="currentPage === 1" 
+            @click="currentPage--"
+            class="pagination-btn"
+          >
+            Zurück
+          </button>
+          
+          <span class="pagination-info">
+            Seite {{ currentPage }} von {{ totalPages }}
+          </span>
+          
+          <button 
+            :disabled="currentPage === totalPages" 
+            @click="currentPage++"
+            class="pagination-btn"
+          >
+            Weiter
+          </button>
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '../services/api';
 import type { SchuleStammdatenResponse } from '../types/schule';
 
 const items = ref<SchuleStammdatenResponse[]>([]);
 const loading = ref(false);
 const error = ref('');
+const searchQuery = ref('');
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
+
+const filteredItems = computed(() => {
+  if (!searchQuery.value) return items.value;
+  
+  const query = searchQuery.value.toLowerCase();
+  return items.value.filter(item => 
+    (item.schulnummer?.toString().includes(query)) ||
+    (item.schulform?.toLowerCase().includes(query)) ||
+    (item.bezeichnung1?.toLowerCase().includes(query))
+  );
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredItems.value.length / itemsPerPage.value);
+});
+
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredItems.value.slice(start, end);
+});
 
 const loadStammdaten = async () => {
   if (loading.value) {
@@ -84,6 +141,7 @@ const loadStammdaten = async () => {
   try {
     const response = await api.get<SchuleStammdatenResponse[]>('/api/schulen/stammdaten');
     items.value = response.data;
+    currentPage.value = 1;
   } catch (err: any) {
     error.value = err.response?.data?.message || err.message || 'Fehler beim Laden der Stammdaten';
   } finally {
@@ -111,16 +169,16 @@ onMounted(loadStammdaten);
   background: linear-gradient(135deg, #0f172a, #1e293b);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
-  padding: 1rem 1.5rem;
+  padding: 0.7rem 1.2rem;
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
 }
 
 .overview-header h2 {
-  margin: 0.25rem 0;
-  font-size: 1.9rem;
+  margin: 0.1rem 0;
+  font-size: 1.5rem;
   color: #fff;
 }
 
@@ -128,14 +186,15 @@ onMounted(loadStammdaten);
   margin: 0;
   color: rgba(226, 232, 240, 0.8);
   max-width: 560px;
-  line-height: 1.5;
+  line-height: 1.3;
+  font-size: 0.9rem;
 }
 
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 0.75rem;
-  margin: 0;
+  font-size: 0.65rem;
+  margin: 0 0 0.05rem 0;
   color: #38bdf8;
 }
 
@@ -278,6 +337,77 @@ tbody tr:last-child {
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: #38bdf8;
+}
+
+.search-input::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.search-results {
+  white-space: nowrap;
+  color: rgba(226, 232, 240, 0.8);
+  font-size: 0.8rem;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  margin-top: 0.75rem;
+}
+
+.pagination-btn {
+  background: rgba(59, 130, 246, 0.9);
+  border: 1px solid #3b82f6;
+  color: #fff;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #3b82f6;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: rgba(226, 232, 240, 0.8);
+  font-size: 0.85rem;
+  min-width: 120px;
+  text-align: center;
 }
 
 @keyframes pulse {
