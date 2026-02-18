@@ -59,5 +59,3 @@ Contributing
 - See [backend](backend) and [frontend](frontend) folders for component-specific instructions.
 
 License: See LICENSE
-
-If you want, I can now move the remaining detailed sections into `docs/README.md` and commit them there.
