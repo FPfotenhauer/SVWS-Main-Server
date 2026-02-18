@@ -107,7 +107,3 @@ Für komponentenspezifische Anweisungen siehe die Ordner:
 ## Lizenz
 
 Siehe `LICENSE` im Projektstamm.
-
----
-
-Wenn du möchtest, kann ich noch Badges (CI, Docker Hub, Release), ein echtes Logo (SVG), oder eine kurze GIF‑Demo hinzufügen. Sag kurz Bescheid, was du cooler findest.
