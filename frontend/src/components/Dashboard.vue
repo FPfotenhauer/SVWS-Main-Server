@@ -28,7 +28,7 @@
       </div>
 
       <!-- IDM Verwaltung -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToIdmVerwaltung">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Benutzer verwalten -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToBenutzerVerwaltung">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -72,7 +72,7 @@
       </div>
 
       <!-- Support -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToSupport">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -93,6 +93,9 @@ const emit = defineEmits<{
   navigateToServers: [];
   navigateToSchulkatalog: [];
   navigateToSchulstatistiken: [];
+  navigateToIdmVerwaltung: [];
+  navigateToBenutzerVerwaltung: [];
+  navigateToSupport: [];
 }>()
 
 const navigateToServerManagement = () => {
@@ -105,6 +108,18 @@ const navigateToSchulkatalog = () => {
 
 const navigateToSchulstatistiken = () => {
   emit('navigateToSchulstatistiken');
+};
+
+const navigateToIdmVerwaltung = () => {
+  emit('navigateToIdmVerwaltung');
+};
+
+const navigateToBenutzerVerwaltung = () => {
+  emit('navigateToBenutzerVerwaltung');
+};
+
+const navigateToSupport = () => {
+  emit('navigateToSupport');
 };
 </script>
 

@@ -8,11 +8,14 @@ import SchulkatalogeintragBrowser from "./components/SchulkatalogeintragBrowser.
 import SvwsServerSchoolList from "./components/SvwsServerSchoolList.vue";
 import Schulstatistiken from "./components/Schulstatistiken.vue";
 import Schuelerzahlen from "./components/Schuelerzahlen.vue";
+import IDMVerwaltung from "./components/IDMVerwaltung.vue";
+import BenutzerVerwaltung from "./components/BenutzerVerwaltung.vue";
+import Support from "./components/Support.vue";
 import ChangePasswordModal from "./components/ChangePasswordModal.vue";
 
 const auth = useAuthStore();
 const showChangePasswordModal = ref(false);
-const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen'>('dashboard');
+const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'support'>('dashboard');
 
 onMounted(async () => {
   await auth.handleRedirect();
@@ -36,6 +39,18 @@ onMounted(async () => {
   window.addEventListener('navigate-to-schuelerzahlen', () => {
     currentView.value = 'schuelerzahlen';
   });
+
+  window.addEventListener('navigate-to-idm-verwaltung', () => {
+    currentView.value = 'idm-verwaltung';
+  });
+
+  window.addEventListener('navigate-to-benutzerverwaltung', () => {
+    currentView.value = 'benutzerverwaltung';
+  });
+
+  window.addEventListener('navigate-to-support', () => {
+    currentView.value = 'support';
+  });
 });
 </script>
 
@@ -56,7 +71,13 @@ onMounted(async () => {
                     ? 'Verwaltete Schulen'
                     : currentView === 'schuelerzahlen'
                       ? 'Schülerzahlen'
-                      : 'Schulstatistiken'
+                      : currentView === 'idm-verwaltung'
+                        ? 'IDM Verwaltung'
+                        : currentView === 'benutzerverwaltung'
+                          ? 'Benutzer verwalten'
+                          : currentView === 'support'
+                            ? 'Support'
+                            : 'Schulstatistiken'
           }}
         </h1>
         <p v-if="currentView === 'schulkatalog'" class="header-subtitle">Alle Schulen in Nordrhein-Westfalen</p>
@@ -79,12 +100,18 @@ onMounted(async () => {
         @navigate-to-servers="currentView = 'servers'"
         @navigate-to-schulkatalog="currentView = 'schulkatalog'"
         @navigate-to-schulstatistiken="currentView = 'schulstatistiken'"
+        @navigate-to-idm-verwaltung="currentView = 'idm-verwaltung'"
+        @navigate-to-benutzer-verwaltung="currentView = 'benutzerverwaltung'"
+        @navigate-to-support="currentView = 'support'"
       />
       <SvwsServerManager v-else-if="currentView === 'servers'" />
       <SchulkatalogeintragBrowser v-else-if="currentView === 'schulkatalog'" />
       <SvwsServerSchoolList v-else-if="currentView === 'verwaltete-schulen'" />
       <Schulstatistiken v-else-if="currentView === 'schulstatistiken'" />
       <Schuelerzahlen v-else-if="currentView === 'schuelerzahlen'" />
+      <IDMVerwaltung v-else-if="currentView === 'idm-verwaltung'" />
+      <BenutzerVerwaltung v-else-if="currentView === 'benutzerverwaltung'" />
+      <Support v-else-if="currentView === 'support'" />
     </main>
 
     <ChangePasswordModal :visible="showChangePasswordModal" @close="showChangePasswordModal = false" />
