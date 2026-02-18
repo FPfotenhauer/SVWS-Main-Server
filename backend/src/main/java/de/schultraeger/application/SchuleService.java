@@ -277,6 +277,16 @@ public class SchuleService {
             );
             return computeAggregates(rawData);
         } catch (SvwsClientException ex) {
+            // Handle 404: Statistics endpoint not available for this school - return empty statistics
+            if (ex.getStatusCode() == 404) {
+                LOG.warnf("Statistics endpoint not available for schema %s", schule.svwsSchema());
+                return createEmptyStatistiken();
+            }
+            // Handle 200 with bad JSON: School database exists but has malformed statistics data
+            if (ex.getStatusCode() == 200) {
+                LOG.warnf("Statistics JSON parsing failed for schema %s", schule.svwsSchema());
+                return createEmptyStatistiken();
+            }
             LOG.warnf(ex, "Statistiken nicht erreichbar für Schema %s (Status %d)", schule.svwsSchema(), ex.getStatusCode());
             throw new IllegalStateException("Statistiken nicht erreichbar: " + ex.getMessage(), ex);
         }
@@ -381,6 +391,20 @@ public class SchuleService {
                 abiStudentsPassed,
                 studentsByGrade,
                 topLocations
+        );
+    }
+
+    private SchuleStatistikenGesamt createEmptyStatistiken() {
+        return new SchuleStatistikenGesamt(
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                List.of(),
+                List.of()
         );
     }
 

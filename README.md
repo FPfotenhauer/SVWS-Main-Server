@@ -33,6 +33,7 @@ Ein leichtgewichtiger Verwaltungsserver zur Registrierung, Überwachung und Verw
 
 - Verwaltung mehrerer SVWS‑Instanzen (Name, URL, Port, Zugangsdaten)
 - Verbindungstests & Statusanzeige
+- Anzeige der Schulen in NRW
 - Verschlüsselte Speicherung von Passwörtern (AES‑GCM)
 - Unterstützung für TLS / selbstsignierte Zertifikate
 - Multi‑container Entwicklung via Docker Compose

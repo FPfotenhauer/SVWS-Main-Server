@@ -138,10 +138,18 @@ public class SvwsClientRest implements SvwsClient {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                return objectMapper.readValue(response.body(), SchuleStatistikenRaw.class);
+                try {
+                    return objectMapper.readValue(response.body(), SchuleStatistikenRaw.class);
+                } catch (Exception jsonEx) {
+                    log.warnf("SVWS getSchuleStatistiken returned 200 but JSON parsing failed for schema %s: %s", schema, jsonEx.getMessage());
+                    throw new SvwsClientException("SVWS getSchuleStatistiken JSON parsing failed", 200, jsonEx);
+                }
             }
             log.warnf("SVWS getSchuleStatistiken failed for schema %s with status %d", schema, response.statusCode());
             throw new SvwsClientException("SVWS getSchuleStatistiken failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            // Re-throw SvwsClientException as-is to preserve status code
+            throw ex;
         } catch (Exception ex) {
             log.errorf(ex, "SVWS getSchuleStatistiken failed for schema %s", schema);
             throw new SvwsClientException("SVWS getSchuleStatistiken failed", -1, ex);
