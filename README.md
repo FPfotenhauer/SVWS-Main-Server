@@ -5,10 +5,10 @@
 
 
 <p align="center">
-    <a href="https://github.com/pfotenhauer/SVWS-Main-Server/issues"><img alt="issues" src="https://img.shields.io/github/issues/pfotenhauer/SVWS-Main-Server"/></a>
-	<a href="https://github.com/pfotenhauer/SVWS-Main-Server"><img alt="last-commit" src="https://img.shields.io/github/last-commit/pfotenhauer/SVWS-Main-Server"/></a>
-	<a href="https://github.com/pfotenhauer/SVWS-Main-Server"><img alt="license" src="https://img.shields.io/github/license/pfotenhauer/SVWS-Main-Server"/></a>
-	<img alt="java" src="https://img.shields.io/badge/Java-21-blue?logo=java"/>
+  <a href="https://github.com/FPfotenhauer/SVWS-Main-Server/issues"><img alt="issues" src="https://img.shields.io/github/issues/FPfotenhauer/SVWS-Main-Server"/></a>
+  <a href="https://github.com/FPfotenhauer/SVWS-Main-Server"><img alt="last-commit" src="https://img.shields.io/github/last-commit/FPfotenhauer/SVWS-Main-Server"/></a>
+  <a href="https://github.com/FPfotenhauer/SVWS-Main-Server"><img alt="license" src="https://img.shields.io/github/license/FPfotenhauer/SVWS-Main-Server"/></a>
+  <img alt="java" src="https://img.shields.io/badge/Java-21-blue?logo=java"/>
 </p>
 
 ---
