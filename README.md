@@ -1,61 +1,113 @@
 # SVWS-Main-Server
 
-Schultraeger-Server (MVP) für die Verwaltung mehrerer SVWS-Instanzen.
+## Dies ist ein Multi-Tenant-Server zur Verwaltung von mehreren SVWS-Instanzen.
 
-## Überblick
 
-Dies ist ein Multi-Tenant-Server zur Verwaltung von SVWS-Instanzen mit:
-- **Backend**: Quarkus 3.13.3 (Java 21)
-- **Frontend**: Vue 3 + Vite
-- **Datenbank**: PostgreSQL 15
-- **Authentifizierung**: OIDC oder Passwort-basiert
-- **Infrastruktur**: Docker Compose mit Nginx Reverse Proxy
 
-## Features
+<p align="center">
+    <a href="https://github.com/pfotenhauer/SVWS-Main-Server/issues"><img alt="issues" src="https://img.shields.io/github/issues/pfotenhauer/SVWS-Main-Server"/></a>
+	<a href="https://github.com/pfotenhauer/SVWS-Main-Server"><img alt="last-commit" src="https://img.shields.io/github/last-commit/pfotenhauer/SVWS-Main-Server"/></a>
+	<a href="https://github.com/pfotenhauer/SVWS-Main-Server"><img alt="license" src="https://img.shields.io/github/license/pfotenhauer/SVWS-Main-Server"/></a>
+	<img alt="java" src="https://img.shields.io/badge/Java-21-blue?logo=java"/>
+</p>
 
-### SVWS Server Verwaltung
-- **Server hinzufügen**: SVWS-Server mit Name, Base URL, Port und Zugangsdaten registrieren
-- **Verbindungstests**: Automatisches Testen der Serververbindung mit Statusanzeige
-- **Verschlüsselte Passwörter**: Passwörter werden verschlüsselt in der Datenbank gespeichert (AES-GCM)
-- **SSL-Unterstützung**: Automatische Verbindung zu SVWS-Servern mit selbstsignierten Zertifikaten
-# SVWS-Main-Server
+---
 
-Kurz: Multi-tenant Verwaltungsserver (MVP) zur zentralen Verwaltung mehrerer SVWS-Instanzen.
+## Kurzüberblick
 
-Why it matters: Start, überwache und verwalte mehrere SVWS-Server zentral über eine Web-Oberfläche.
+Ein leichtgewichtiger Verwaltungsserver zur Registrierung, Überwachung und Verwaltung mehrerer SVWS‑Server. Optimiert für lokale Entwicklung mit Docker Compose und modularer Trennung von Backend (Quarkus) und Frontend (Vue + Vite).
 
-Requirements: Docker, Docker Compose, Git
+**Technologien:** Java (Quarkus), Vue 3, PostgreSQL, Docker Compose, Nginx
 
-Quickstart
 
-1. Clone:
+## Inhaltsverzeichnis
+
+- Features
+- Quickstart
+- Entwicklung
+- Architektur & Doku
+- Contributing
+- Lizenz
+
+## Highlights / Features
+
+- Verwaltung mehrerer SVWS‑Instanzen (Name, URL, Port, Zugangsdaten)
+- Verbindungstests & Statusanzeige
+- Verschlüsselte Speicherung von Passwörtern (AES‑GCM)
+- Unterstützung für TLS / selbstsignierte Zertifikate
+- Multi‑container Entwicklung via Docker Compose
+
+## Quickstart (lokal)
+
+1. Repository klonen
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/your-org/SVWS-Main-Server.git
 cd SVWS-Main-Server
 ```
 
-2. Copy env and edit required values:
+2. Environment kopieren und anpassen
 
 ```bash
 cp .env.example .env
-# edit .env (DB_*, JWT_SIGN_KEY, SVWS_PASSWORD_KEY, etc.)
+# Werte für DB_*, JWT_SIGN_KEY, SVWS_PASSWORD_KEY usw. anpassen
 ```
 
-3. Start with Docker Compose:
+3. Dienste starten
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-App: http://localhost:8081
+Die Web‑App ist standardmäßig erreichbar unter: http://localhost:8081
 
-Where to find more
+Logs ansehen (Backend):
 
-- Details, configuration examples, API docs, development and troubleshooting moved to: [docs/README.md](docs/README.md)
+```bash
+docker compose logs -f backend
+```
 
-Contributing
+## Entwicklung
 
-- See [backend](backend) and [frontend](frontend) folders for component-specific instructions.
+- Backend
 
-License: See LICENSE
+	```bash
+	# im backend/ Verzeichnis
+	./mvnw quarkus:dev
+	```
+
+- Frontend
+
+	```bash
+	# im frontend/ Verzeichnis
+	npm install
+	npm run dev
+	```
+
+## Architektur & Doku
+
+Architekturentscheidungen, ADRs und weitere Doku befinden sich im `architecture`‑Ordner und in `docs`:
+
+- [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)
+- [docs/README.md](docs/README.md)
+
+## Contributing
+
+Contributions, Issues und Vorschläge willkommen. Kurzer Ablauf:
+
+1. Fork
+2. Branch erstellen
+3. PR mit Beschreibung öffnen
+
+Für komponentenspezifische Anweisungen siehe die Ordner:
+
+- [backend](backend)
+- [frontend](frontend)
+
+## Lizenz
+
+Siehe `LICENSE` im Projektstamm.
+
+---
+
+Wenn du möchtest, kann ich noch Badges (CI, Docker Hub, Release), ein echtes Logo (SVG), oder eine kurze GIF‑Demo hinzufügen. Sag kurz Bescheid, was du cooler findest.
