@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
 import { useSchulenStore } from "../stores/schulen";
-import type { SvwsServerRequest } from "../types/svwsServer";
+import type { SvwsServer, SvwsServerRequest } from "../types/svwsServer";
 import SchoolCreationModal from "./SchoolCreationModal.vue";
 import SchoolInfoModal from "./SchoolInfoModal.vue";
 import MessageModal from "./MessageModal.vue";
@@ -23,6 +23,15 @@ const selectedSchools = ref<Set<string>>(new Set());
 const showMessageModal = ref(false);
 const messageModalTitle = ref('');
 const messageModalContent = ref('');
+const editingServerId = ref<string | null>(null);
+
+const editForm = ref({
+  name: "",
+  url: "",
+  port: "",
+  username: "",
+  password: ""
+});
 
 const form = ref({
   name: "",
@@ -339,6 +348,65 @@ const canCreate = computed(() =>
   form.value.password
 );
 
+const canSaveEdit = computed(() =>
+  !!editingServerId.value &&
+  !!editForm.value.name &&
+  !!editForm.value.url &&
+  !!editForm.value.port &&
+  !!editForm.value.username
+);
+
+const splitBaseUrl = (baseUrl: string) => {
+  const match = baseUrl.trim().match(/^(.*):(\d+)$/);
+  if (!match) {
+    return { url: baseUrl, port: "" };
+  }
+  return { url: match[1], port: match[2] };
+};
+
+const startEditServer = (server: SvwsServer) => {
+  const { url, port } = splitBaseUrl(server.baseUrl);
+  editingServerId.value = server.id;
+  editForm.value = {
+    name: server.name,
+    url,
+    port,
+    username: server.username,
+    password: ""
+  };
+};
+
+const cancelEditServer = () => {
+  editingServerId.value = null;
+  editForm.value = {
+    name: "",
+    url: "",
+    port: "",
+    username: "",
+    password: ""
+  };
+};
+
+const saveServerEdit = async (id: string) => {
+  if (editingServerId.value !== id || !canSaveEdit.value) {
+    return;
+  }
+
+  try {
+    const serverRequest: SvwsServerRequest = {
+      name: editForm.value.name,
+      baseUrl: `${editForm.value.url}:${editForm.value.port}`,
+      username: editForm.value.username,
+      password: editForm.value.password
+    };
+
+    await store.updateServer(id, serverRequest);
+    cancelEditServer();
+  } catch (err) {
+    // Error is already in store.error
+  }
+};
+
 const createServer = async () => {
   try {
     // Combine URL and port into baseUrl
@@ -477,10 +545,26 @@ onMounted(() => {
         <tbody>
           <tr v-for="server in filteredAndSortedServers" :key="server.id">
             <td class="server-name">
-              <strong>{{ server.name }}</strong>
+              <template v-if="editingServerId === server.id">
+                <input v-model="editForm.name" type="text" placeholder="Name" />
+              </template>
+              <strong v-else>{{ server.name }}</strong>
             </td>
-            <td>{{ server.baseUrl }}</td>
-            <td>{{ server.username }}</td>
+            <td>
+              <template v-if="editingServerId === server.id">
+                <div class="edit-baseurl-fields">
+                  <input v-model="editForm.url" type="text" placeholder="URL" />
+                  <input v-model="editForm.port" type="text" placeholder="Port" class="edit-port" />
+                </div>
+              </template>
+              <span v-else>{{ server.baseUrl }}</span>
+            </td>
+            <td>
+              <template v-if="editingServerId === server.id">
+                <input v-model="editForm.username" type="text" placeholder="Benutzername" />
+              </template>
+              <span v-else>{{ server.username }}</span>
+            </td>
             <td>
               <div class="status" :class="statusClass(server.status)">
                 {{ server.status }}
@@ -488,10 +572,40 @@ onMounted(() => {
             </td>
             <td>
               <div class="action-buttons">
+                <template v-if="editingServerId === server.id">
+                  <button
+                    class="icon-button secondary"
+                    type="button"
+                    :disabled="!canSaveEdit"
+                    @click="saveServerEdit(server.id)"
+                    title="Änderungen speichern">
+                    ✔
+                  </button>
+                  <button
+                    class="icon-button secondary"
+                    type="button"
+                    @click="cancelEditServer"
+                    title="Bearbeiten abbrechen">
+                    ✕
+                  </button>
+                </template>
+                <template v-else>
+                  <button
+                    class="icon-button secondary"
+                    type="button"
+                    @click="startEditServer(server)"
+                    title="Bearbeiten">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+                    </svg>
+                  </button>
+                </template>
                 <button 
                   class="icon-button secondary" 
                   type="button" 
                   @click="testConnection(server.id)"
+                  :disabled="editingServerId === server.id"
                   title="Verbindung testen">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -502,6 +616,7 @@ onMounted(() => {
                   class="icon-button secondary" 
                   type="button" 
                   @click="viewSchools(server.id)"
+                  :disabled="editingServerId === server.id"
                   title="Schulen anzeigen">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -512,6 +627,7 @@ onMounted(() => {
                   class="icon-button danger" 
                   type="button" 
                   @click="deleteServer(server.id)"
+                  :disabled="editingServerId === server.id"
                   title="Löschen">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"></path>
@@ -844,6 +960,16 @@ button.danger:active,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.edit-baseurl-fields {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 0.5rem;
+}
+
+.edit-port {
+  min-width: 0;
 }
 
 .school-header-actions {
