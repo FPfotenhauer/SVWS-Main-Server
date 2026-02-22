@@ -71,6 +71,22 @@
         <p>Zugriff auf den Schulkatalog von Nordrhein-Westfalen</p>
       </div>
 
+      <!-- Entfernungsberechnung -->
+      <div class="dashboard-tile" @click="navigateToEntfernungsberechnung">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M3 12h18"></path>
+            <path d="M3 18h18"></path>
+            <circle cx="6" cy="6" r="2"></circle>
+            <circle cx="18" cy="12" r="2"></circle>
+            <circle cx="10" cy="18" r="2"></circle>
+          </svg>
+        </div>
+        <h3>Entfernungsberechnung</h3>
+        <p>Berechnung und Auswertung von Entfernungen</p>
+      </div>
+
       <!-- Support -->
       <div class="dashboard-tile" @click="navigateToSupport">
         <div class="tile-icon">
@@ -95,6 +111,7 @@ const emit = defineEmits<{
   navigateToSchulstatistiken: [];
   navigateToIdmVerwaltung: [];
   navigateToBenutzerVerwaltung: [];
+  navigateToEntfernungsberechnung: [];
   navigateToSupport: [];
 }>()
 
@@ -116,6 +133,10 @@ const navigateToIdmVerwaltung = () => {
 
 const navigateToBenutzerVerwaltung = () => {
   emit('navigateToBenutzerVerwaltung');
+};
+
+const navigateToEntfernungsberechnung = () => {
+  emit('navigateToEntfernungsberechnung');
 };
 
 const navigateToSupport = () => {

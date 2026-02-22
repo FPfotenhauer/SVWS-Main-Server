@@ -11,11 +11,15 @@ import Schuelerzahlen from "./components/Schuelerzahlen.vue";
 import IDMVerwaltung from "./components/IDMVerwaltung.vue";
 import BenutzerVerwaltung from "./components/BenutzerVerwaltung.vue";
 import Support from "./components/Support.vue";
+import Entfernungsberechnung from "./components/Entfernungsberechnung.vue";
+import EntfernungsberechnungSchule from "./components/EntfernungsberechnungSchule.vue";
 import ChangePasswordModal from "./components/ChangePasswordModal.vue";
+import type { SchuleStammdatenResponse } from "./types/schule";
 
 const auth = useAuthStore();
 const showChangePasswordModal = ref(false);
-const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'support'>('dashboard');
+const selectedDistanceSchool = ref<SchuleStammdatenResponse | null>(null);
+const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'entfernungsberechnung' | 'entfernungsberechnung-schule' | 'support'>('dashboard');
 
 onMounted(async () => {
   await auth.handleRedirect();
@@ -48,6 +52,10 @@ onMounted(async () => {
     currentView.value = 'benutzerverwaltung';
   });
 
+  window.addEventListener('navigate-to-entfernungsberechnung', () => {
+    currentView.value = 'entfernungsberechnung';
+  });
+
   window.addEventListener('navigate-to-support', () => {
     currentView.value = 'support';
   });
@@ -75,6 +83,10 @@ onMounted(async () => {
                         ? 'IDM Verwaltung'
                         : currentView === 'benutzerverwaltung'
                           ? 'Benutzer verwalten'
+                          : currentView === 'entfernungsberechnung'
+                            ? 'Entfernungsberechnung'
+                            : currentView === 'entfernungsberechnung-schule'
+                              ? 'Entfernungsberechnung · Schüler:in suchen'
                           : currentView === 'support'
                             ? 'Support'
                             : 'Schulstatistiken'
@@ -102,6 +114,7 @@ onMounted(async () => {
         @navigate-to-schulstatistiken="currentView = 'schulstatistiken'"
         @navigate-to-idm-verwaltung="currentView = 'idm-verwaltung'"
         @navigate-to-benutzer-verwaltung="currentView = 'benutzerverwaltung'"
+        @navigate-to-entfernungsberechnung="currentView = 'entfernungsberechnung'"
         @navigate-to-support="currentView = 'support'"
       />
       <SvwsServerManager v-else-if="currentView === 'servers'" />
@@ -111,6 +124,15 @@ onMounted(async () => {
       <Schuelerzahlen v-else-if="currentView === 'schuelerzahlen'" />
       <IDMVerwaltung v-else-if="currentView === 'idm-verwaltung'" />
       <BenutzerVerwaltung v-else-if="currentView === 'benutzerverwaltung'" />
+      <Entfernungsberechnung
+        v-else-if="currentView === 'entfernungsberechnung'"
+        @select-school="(school) => { selectedDistanceSchool = school; currentView = 'entfernungsberechnung-schule'; }"
+      />
+      <EntfernungsberechnungSchule
+        v-else-if="currentView === 'entfernungsberechnung-schule'"
+        :school="selectedDistanceSchool"
+        @back="currentView = 'entfernungsberechnung'"
+      />
       <Support v-else-if="currentView === 'support'" />
     </main>
 
