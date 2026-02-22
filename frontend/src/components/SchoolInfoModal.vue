@@ -98,10 +98,10 @@
               <button 
                 type="button" 
                 class="delete-button"
-                @click="deleteCredentials"
+                @click="deleteSchool"
                 :disabled="saving || isLoadingStore"
               >
-                {{ saving ? 'Löschen...' : 'Löschen' }}
+                {{ saving ? 'Schule löschen...' : 'Schule löschen' }}
               </button>
             </div>
           </div>
@@ -342,6 +342,52 @@ const saveCredentials = async () => {
     emit('schoolSaved');
   } catch (e: any) {
     error.value = e.response?.data?.message || e.message || 'Fehler beim Speichern';
+  } finally {
+    saving.value = false;
+  }
+};
+
+const deleteSchool = async () => {
+  console.log('[SchoolInfoModal] deleteSchool called');
+  console.log('[SchoolInfoModal] credentialIdToUpdate:', credentialIdToUpdate.value);
+  console.log('[SchoolInfoModal] props.schule:', props.schule);
+  
+  if (!credentialIdToUpdate.value) {
+    console.error('[SchoolInfoModal] No credentialIdToUpdate - cannot delete');
+    error.value = 'Keine Schule zum Löschen gefunden';
+    return;
+  }
+
+  const schemaName = props.schule?.schema || 'diese Schule';
+  const confirmMsg = `WARNUNG: Diese Aktion löscht die Schule "${schemaName}" PERMANENT vom SVWS-Server und aus der Datenbank!\n\n` +
+    `Alle Daten dieser Schule werden unwiederbringlich gelöscht.\n\n` +
+    `Möchten Sie fortfahren?`;
+  
+  console.log('[SchoolInfoModal] Showing confirmation dialog');
+  if (!confirm(confirmMsg)) {
+    console.log('[SchoolInfoModal] User cancelled deletion');
+    return;
+  }
+
+  console.log('[SchoolInfoModal] User confirmed deletion');
+  error.value = '';
+  success.value = '';
+  saving.value = true;
+
+  try {
+    console.log(`[SchoolInfoModal] Calling schulenStore.delete with ID: ${credentialIdToUpdate.value}`);
+    await schulenStore.delete(credentialIdToUpdate.value);
+    success.value = 'Schule erfolgreich gelöscht!';
+    
+    // Close modal after short delay
+    setTimeout(() => {
+      closeModal();
+    }, 1500);
+    
+    emit('schoolSaved');
+  } catch (e: any) {
+    console.error('[SchoolInfoModal] Delete failed:', e);
+    error.value = e.response?.data?.message || e.message || 'Fehler beim Löschen der Schule';
   } finally {
     saving.value = false;
   }

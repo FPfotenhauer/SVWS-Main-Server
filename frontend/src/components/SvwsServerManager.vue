@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
+import { useSchulenStore } from "../stores/schulen";
 import type { SvwsServerRequest } from "../types/svwsServer";
 import SchoolCreationModal from "./SchoolCreationModal.vue";
 import SchoolInfoModal from "./SchoolInfoModal.vue";
 
 const store = useSvwsServersStore();
+const schulenStore = useSchulenStore();
 const showForm = ref(false);
 const showSchoolCreationModal = ref(false);
 const showSchoolInfoModal = ref(false);
@@ -145,14 +147,75 @@ const createBackup = () => {
   // TODO: Backend call
 };
 
-const deleteSchools = () => {
+const deleteSchools = async () => {
   if (selectedSchools.value.size === 0) {
     alert('Bitte wählen Sie mindestens eine Schule aus');
     return;
   }
+  
   const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
-  console.log('Schulen löschen:', selectedSchoolData);
-  // TODO: Backend call
+  
+  if (selectedSchoolData.length === 0) {
+    alert('Keine Schulen zum Löschen gefunden');
+    return;
+  }
+
+  const schoolNames = selectedSchoolData.map(s => s.name || s.schema).join(', ');
+  const confirmMessage = `WARNUNG: Diese Aktion löscht die ausgewählten Schulen PERMANENT vom SVWS-Server und aus der Datenbank!\n\n` +
+    `Schulen: ${schoolNames}\n\n` +
+    `Alle Daten dieser Schulen werden unwiederbringlich gelöscht.\n\n` +
+    `Möchten Sie fortfahren?`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  // Load fresh schulen data to get current IDs
+  await schulenStore.load();
+  
+  let deletedCount = 0;
+  let errorCount = 0;
+  
+  for (const school of selectedSchoolData) {
+    try {
+      // Find the school in our database by matching serverId and schema
+      const managedSchool = schulenStore.items.find(
+        s => s.svwsSchema === school.schema && 
+             s.svwsServerId === store.selectedServer?.id
+      );
+      
+      if (managedSchool?.id) {
+        console.log(`Deleting school: ${school.name} (schema: ${school.schema}, id: ${managedSchool.id})`);
+        await schulenStore.delete(managedSchool.id);
+        deletedCount++;
+      } else {
+        console.warn(`School not found in database: ${school.schema}`);
+        errorCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to delete school ${school.schema}:`, error);
+      errorCount++;
+    }
+  }
+  
+  // Clear selection
+  selectedSchools.value.clear();
+  
+  // Small delay to allow SVWS server to process schema destruction
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Reload both the SVWS server school list and the managed schools from database
+  await schulenStore.load();
+  if (store.selectedServer) {
+    await store.loadSchoolsFromServer(store.selectedServer.id);
+  }
+  
+  // Show result message
+  if (errorCount === 0) {
+    alert(`${deletedCount} Schule(n) erfolgreich gelöscht`);
+  } else {
+    alert(`${deletedCount} Schule(n) gelöscht, ${errorCount} Fehler`);
+  }
 };
 
 const duplicateSchools = () => {
@@ -271,6 +334,7 @@ const deleteServer = async (id: string) => {
 
 onMounted(() => {
   store.loadServers();
+  schulenStore.load();
 });
 </script>
 

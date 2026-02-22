@@ -18,4 +18,14 @@ public interface SvwsClient {
     SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password);
 
     List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password);
+
+    /**
+     * Destroys a schema on the SVWS server using the privileged API.
+     * @param baseUrl SVWS server base URL
+     * @param schema Schema name to destroy
+     * @param username Privileged username
+     * @param password Privileged password
+     * @throws SvwsClientException if the operation fails
+     */
+    void destroySchema(String baseUrl, String schema, String username, String password);
 }

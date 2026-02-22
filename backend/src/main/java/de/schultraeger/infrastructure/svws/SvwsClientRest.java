@@ -244,6 +244,35 @@ public class SvwsClientRest implements SvwsClient {
         );
     }
 
+    @Override
+    public void destroySchema(String baseUrl, String schema, String username, String password) {
+        HttpClient client = buildHttpClient();
+        try {
+            String encodedSchema = schema != null ? URLEncoder.encode(schema, StandardCharsets.UTF_8) : "";
+            String url = baseUrl + "/api/schema/root/destroy/" + encodedSchema;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 || response.statusCode() == 204) {
+                log.infof("Successfully destroyed schema %s", schema);
+                return;
+            }
+            log.warnf("SVWS destroySchema failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS destroySchema failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS destroySchema failed for schema %s", schema);
+            throw new SvwsClientException("SVWS destroySchema failed", -1, ex);
+        }
+    }
+
     /**
      * Creates a new SvwsSchuleInfo with the schema field populated.
      */

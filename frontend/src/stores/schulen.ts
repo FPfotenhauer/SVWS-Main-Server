@@ -36,6 +36,11 @@ export const useSchulenStore = defineStore("schulen", {
         this.items[index] = response.data;
       }
       return response.data;
+    },
+    async delete(id: string) {
+      this.error = "";
+      await api.delete(`/api/schulen/${id}`);
+      this.items = this.items.filter(s => s.id !== id);
     }
   }
 });

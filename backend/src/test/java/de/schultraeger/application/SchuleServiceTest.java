@@ -51,6 +51,10 @@ class SchuleServiceTest {
                     createStubInfo("schema2")
                 );
             }
+            @Override
+            public void destroySchema(String baseUrl, String schema, String username, String password) {
+                // No-op for test
+            }
         };
 
         SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
@@ -91,6 +95,10 @@ class SchuleServiceTest {
             public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
                 return List.of(createStubInfo("schema1"), createStubInfo("schema2"));
             }
+            @Override
+            public void destroySchema(String baseUrl, String schema, String username, String password) {
+                // No-op for test
+            }
         };
 
         SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
@@ -127,6 +135,10 @@ class SchuleServiceTest {
                     createStubInfo(null)
                 );
             }
+            @Override
+            public void destroySchema(String baseUrl, String schema, String username, String password) {
+                // No-op for test
+            }
         };
 
         SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
@@ -136,6 +148,58 @@ class SchuleServiceTest {
         assertEquals(1, imported);
         assertEquals(1, repo.findAllSchools().size());
         assertTrue(repo.findByServerIdAndSchema(SERVER_ID, "schema1").isPresent());
+    }
+
+    @Test
+    void deleteShouldDestroySchemaOnServerAndRemoveFromDatabase() {
+        InMemoryRepo repo = new InMemoryRepo();
+        StubSvwsServerRepository serverRepo = new StubSvwsServerRepository();
+        SvwsServer server = serverRepo.getById(SERVER_ID).get();
+        
+        final boolean[] destroyCalled = {false};
+        final String[] destroyedSchema = {null};
+        
+        SvwsClient client = new SvwsClient() {
+            @Override
+            public boolean isPrivileged(String baseUrl, String username, String password) { return true; }
+            @Override
+            public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) { return null; }
+            @Override
+            public de.schultraeger.application.dto.SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
+            public de.schultraeger.application.dto.SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
+            public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+                return List.of();
+            }
+            @Override
+            public void destroySchema(String baseUrl, String schema, String username, String password) {
+                destroyCalled[0] = true;
+                destroyedSchema[0] = schema;
+            }
+        };
+
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+        
+        // Create a school
+        service.saveSchoolIfNew(server, createStubInfo("test-schema"));
+        UUID schuleId = repo.findByServerIdAndSchema(SERVER_ID, "test-schema").get().id();
+        
+        assertEquals(1, repo.findAllSchools().size());
+        
+        // Delete it
+        service.delete(schuleId);
+        
+        // Verify destroySchema was called
+        assertTrue(destroyCalled[0], "destroySchema should have been called");
+        assertEquals("test-schema", destroyedSchema[0]);
+        
+        // Verify removed from database
+        assertEquals(0, repo.findAllSchools().size());
     }
 
     private SchuleService service(SchuleRepository repo, SvwsServerRepository serverRepo) {

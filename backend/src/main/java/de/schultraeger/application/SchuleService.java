@@ -183,7 +183,28 @@ public class SchuleService {
 
     @Transactional
     public void delete(UUID id) {
+        Schule schule = repository.findSchoolById(id)
+                .orElseThrow(() -> new SchuleNotFoundException(id));
+        
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + id));
+        
+        String password = passwordCipher.decrypt(server.passwordEncrypted());
+        
+        try {
+            // First destroy the schema on the SVWS server
+            LOG.infov("Destroying schema {0} on SVWS server {1}", schule.svwsSchema(), server.name());
+            svwsClient.destroySchema(server.baseUrl(), schule.svwsSchema(), server.username(), password);
+            LOG.infov("Successfully destroyed schema {0}", schule.svwsSchema());
+        } catch (Exception e) {
+            LOG.errorv(e, "Failed to destroy schema {0} on SVWS server - will still delete from database", schule.svwsSchema());
+            // Continue with database deletion even if SVWS deletion fails
+            // This allows cleanup of orphaned database entries
+        }
+        
+        // Then delete from our database
         repository.deleteSchool(id);
+        LOG.infov("Deleted school {0} from database", id);
     }
 
     public List<SchuleStammdatenResult> listStammdaten() {
