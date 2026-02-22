@@ -207,6 +207,19 @@ public class SchuleService {
         LOG.infov("Deleted school {0} from database", id);
     }
 
+    public byte[] exportBackup(UUID id) {
+        Schule schule = repository.findSchoolById(id)
+                .orElseThrow(() -> new SchuleNotFoundException(id));
+        
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + id));
+        
+        String password = passwordCipher.decrypt(server.passwordEncrypted());
+        
+        LOG.infov("Exporting SQLite backup for schema {0} from SVWS server {1}", schule.svwsSchema(), server.name());
+        return svwsClient.exportSqliteBackup(server.baseUrl(), schule.svwsSchema(), server.username(), password);
+    }
+
     public List<SchuleStammdatenResult> listStammdaten() {
         return repository.findAllSchools().stream()
                 .map(this::buildStammdatenResult)

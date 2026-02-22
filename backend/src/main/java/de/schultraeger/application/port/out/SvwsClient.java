@@ -28,4 +28,15 @@ public interface SvwsClient {
      * @throws SvwsClientException if the operation fails
      */
     void destroySchema(String baseUrl, String schema, String username, String password);
+
+    /**
+     * Exports a schema as SQLite backup from the SVWS server.
+     * @param baseUrl SVWS server base URL
+     * @param schema Schema name to export
+     * @param username Privileged username
+     * @param password Privileged password
+     * @return byte array containing the SQLite database file
+     * @throws SvwsClientException if the operation fails
+     */
+    byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password);
 }

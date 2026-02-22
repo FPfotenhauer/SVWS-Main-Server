@@ -55,6 +55,10 @@ class SchuleServiceTest {
             public void destroySchema(String baseUrl, String schema, String username, String password) {
                 // No-op for test
             }
+            @Override
+            public byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password) {
+                return new byte[0];
+            }
         };
 
         SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
@@ -99,6 +103,10 @@ class SchuleServiceTest {
             public void destroySchema(String baseUrl, String schema, String username, String password) {
                 // No-op for test
             }
+            @Override
+            public byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password) {
+                return new byte[0];
+            }
         };
 
         SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
@@ -138,6 +146,10 @@ class SchuleServiceTest {
             @Override
             public void destroySchema(String baseUrl, String schema, String username, String password) {
                 // No-op for test
+            }
+            @Override
+            public byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password) {
+                return new byte[0];
             }
         };
 
@@ -180,6 +192,10 @@ class SchuleServiceTest {
             public void destroySchema(String baseUrl, String schema, String username, String password) {
                 destroyCalled[0] = true;
                 destroyedSchema[0] = schema;
+            }
+            @Override
+            public byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password) {
+                return new byte[0];
             }
         };
 

@@ -273,6 +273,36 @@ public class SvwsClientRest implements SvwsClient {
         }
     }
 
+    @Override
+    public byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password) {
+        HttpClient client = buildHttpClient();
+        try {
+            String encodedSchema = schema != null ? URLEncoder.encode(schema, StandardCharsets.UTF_8) : "";
+            String url = baseUrl + "/api/schema/export/" + encodedSchema + "/sqlite";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/vnd.sqlite3")
+                    .timeout(Duration.ofMinutes(10))  // Backups can take a while
+                    .GET()
+                    .build();
+
+            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() == 200) {
+                log.infof("Successfully exported SQLite backup for schema %s (%d bytes)", schema, response.body().length);
+                return response.body();
+            }
+            log.warnf("SVWS exportSqliteBackup failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS exportSqliteBackup failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS exportSqliteBackup failed for schema %s", schema);
+            throw new SvwsClientException("SVWS exportSqliteBackup failed", -1, ex);
+        }
+    }
+
     /**
      * Creates a new SvwsSchuleInfo with the schema field populated.
      */

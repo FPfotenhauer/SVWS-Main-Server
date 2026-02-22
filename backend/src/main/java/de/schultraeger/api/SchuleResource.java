@@ -80,6 +80,27 @@ public class SchuleResource {
         return Response.noContent().build();
     }
 
+    @GET
+    @Path("{id}/backup")
+    @Produces("application/vnd.sqlite3")
+    public Response exportBackup(@PathParam("id") UUID id) {
+        try {
+            Schule schule = service.getById(id);
+            byte[] backup = service.exportBackup(id);
+            
+            String filename = "backup_" + schule.svwsSchema() + "_" + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".sqlite";
+            
+            return Response.ok(backup)
+                    .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                    .header("Content-Type", "application/vnd.sqlite3")
+                    .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Backup export failed: " + e.getMessage())
+                    .build();
+        }
+    }
+
     private SchuleResponse toResponse(Schule schule) {
         String serverName = serverRepository.getById(schule.svwsServerId())
                 .map(SvwsServer::name)

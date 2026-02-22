@@ -5,6 +5,7 @@ import { useSchulenStore } from "../stores/schulen";
 import type { SvwsServerRequest } from "../types/svwsServer";
 import SchoolCreationModal from "./SchoolCreationModal.vue";
 import SchoolInfoModal from "./SchoolInfoModal.vue";
+import MessageModal from "./MessageModal.vue";
 
 const store = useSvwsServersStore();
 const schulenStore = useSchulenStore();
@@ -19,6 +20,9 @@ const schoolSortDirection = ref<'asc' | 'desc'>('asc');
 const schoolSearchQuery = ref('');
 const serverSearchQuery = ref('');
 const selectedSchools = ref<Set<string>>(new Set());
+const showMessageModal = ref(false);
+const messageModalTitle = ref('');
+const messageModalContent = ref('');
 
 const form = ref({
   name: "",
@@ -137,14 +141,75 @@ const toggleAllSchools = () => {
   }
 };
 
-const createBackup = () => {
+const createBackup = async () => {
   if (selectedSchools.value.size === 0) {
-    alert('Bitte wählen Sie mindestens eine Schule aus');
+    messageModalTitle.value = 'Keine Auswahl';
+    messageModalContent.value = 'Bitte wählen Sie mindestens eine Schule aus';
+    showMessageModal.value = true;
     return;
   }
+  
   const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
-  console.log('Backup erstellen für Schulen:', selectedSchoolData);
-  // TODO: Backend call
+  
+  if (selectedSchoolData.length === 0) {
+    messageModalTitle.value = 'Fehler';
+    messageModalContent.value = 'Keine Schulen für Backup gefunden';
+    showMessageModal.value = true;
+    return;
+  }
+
+  // Load fresh schulen data to get current IDs
+  await schulenStore.load();
+  
+  let successCount = 0;
+  let errorCount = 0;
+  const errors: string[] = [];
+  
+  for (const school of selectedSchoolData) {
+    try {
+      // Find the school in our database by matching serverId and schema
+      const managedSchool = schulenStore.items.find(
+        s => s.svwsSchema === school.schema && 
+             s.svwsServerId === store.selectedServer?.id
+      );
+      
+      if (managedSchool?.id) {
+        console.log(`Creating backup for school: ${school.name} (schema: ${school.schema}, id: ${managedSchool.id})`);
+        
+        // Create download link and trigger download
+        const url = `/api/schulen/${managedSchool.id}/backup`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `backup_${school.schema}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.sqlite`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        successCount++;
+        
+        // Small delay between downloads to avoid overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        console.warn(`School not found in database: ${school.schema}`);
+        errors.push(`${school.name || school.schema}: Nicht in Datenbank gefunden`);
+        errorCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to create backup for school ${school.schema}:`, error);
+      errors.push(`${school.name || school.schema}: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+      errorCount++;
+    }
+  }
+  
+  // Show result message
+  if (errorCount === 0) {
+    messageModalTitle.value = 'Backup gestartet';
+    messageModalContent.value = `${successCount} Backup(s) werden erstellt und heruntergeladen.\nDas kann einige Minuten dauern.`;
+  } else {
+    messageModalTitle.value = 'Backup abgeschlossen';
+    messageModalContent.value = `${successCount} Backup(s) werden erstellt.\n\n${errorCount} Fehler:\n${errors.join('\n')}`;
+  }
+  showMessageModal.value = true;
 };
 
 const deleteSchools = async () => {
@@ -620,6 +685,14 @@ onMounted(() => {
     :schule="selectedSchoolInfo"
     :serverName="store.selectedServer?.name"
     @close="showSchoolInfoModal = false"
+  />
+
+  <!-- Message Modal -->
+  <MessageModal
+    :visible="showMessageModal"
+    :title="messageModalTitle"
+    :message="messageModalContent"
+    @close="showMessageModal = false"
   />
 </template>
 
