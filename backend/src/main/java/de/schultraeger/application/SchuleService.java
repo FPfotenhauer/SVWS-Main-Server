@@ -99,6 +99,9 @@ public class SchuleService {
 
         int count = 0;
         for (SvwsSchuleInfo info : schoolInfos) {
+            if (info == null) {
+                continue;
+            }
             if (saveSchoolIfNew(server, info)) {
                 count++;
             }
@@ -109,7 +112,13 @@ public class SchuleService {
 
     @Transactional
     public boolean saveSchoolIfNew(SvwsServer server, SvwsSchuleInfo info) {
-        if (repository.findByServerIdAndSchema(server.id(), info.schema()).isPresent()) {
+        String schema = normalizeSchema(info.schema());
+        if (schema == null) {
+            LOG.warnv("Skipping school import with missing/blank schema for server_id={0}", server.id());
+            return false;
+        }
+
+        if (repository.findByServerIdAndSchema(server.id(), schema).isPresent()) {
             return false;
         }
 
@@ -117,7 +126,7 @@ public class SchuleService {
         Schule schule = new Schule(
                 UUID.randomUUID(),
                 server.id(),
-                info.schema(),
+            schema,
                 null,  // svwsUsername - will be set later by user
                 null,  // svwsUserPasswordEncrypted - will be set later by user
                 now,
@@ -126,6 +135,14 @@ public class SchuleService {
 
         repository.saveSchool(schule);
         return true;
+    }
+
+    private String normalizeSchema(String schema) {
+        if (schema == null) {
+            return null;
+        }
+        String normalized = schema.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     @Transactional

@@ -183,13 +183,18 @@ public class SvwsClientRest implements SvwsClient {
             
             return schemas.stream()
                 .map(schema -> {
-                    try {
-                        System.out.println("DEBUG: Fetching info for schema " + schema.name());
-                        SvwsSchuleInfo info = getSchuleInfo(baseUrl, schema.name(), username, password);
-                        return withSchema(info, schema.name());
-                    } catch (Exception ex) {
-                        System.err.println("DEBUG: Failed to get info for schema " + schema.name() + ": " + ex.getMessage());
+                    String schemaName = normalizeSchemaName(schema.name());
+                    if (schemaName == null) {
+                        log.warn("Skipping schema with missing/blank name from SVWS schema list");
                         return null;
+                    }
+                    try {
+                        System.out.println("DEBUG: Fetching info for schema " + schemaName);
+                        SvwsSchuleInfo info = getSchuleInfo(baseUrl, schemaName, username, password);
+                        return withSchema(info, schemaName);
+                    } catch (Exception ex) {
+                        log.warnf(ex, "Failed to get detailed school info for schema %s - importing schema-only entry", schemaName);
+                        return fallbackInfoForSchema(schemaName);
                     }
                 })
                 .filter(info -> info != null)
@@ -199,6 +204,44 @@ public class SvwsClientRest implements SvwsClient {
             ex.printStackTrace();
             throw new SvwsClientException("SVWS listSchools failed", -1, ex);
         }
+    }
+
+    private String normalizeSchemaName(String schemaName) {
+        if (schemaName == null) {
+            return null;
+        }
+        String normalized = schemaName.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private SvwsSchuleInfo fallbackInfoForSchema(String schemaName) {
+        return new SvwsSchuleInfo(
+                null,
+                schemaName,
+                schemaName,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     /**

@@ -100,6 +100,44 @@ class SchuleServiceTest {
         assertEquals(2, repo.findAllSchools().size());
     }
 
+    @Test
+    void importSchoolsShouldSkipBlankOrNullSchemas() {
+        InMemoryRepo repo = new InMemoryRepo();
+        StubSvwsServerRepository serverRepo = new StubSvwsServerRepository();
+        SvwsServer server = serverRepo.getById(SERVER_ID).get();
+
+        SvwsClient client = new SvwsClient() {
+            @Override
+            public boolean isPrivileged(String baseUrl, String username, String password) { return true; }
+            @Override
+            public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) { return null; }
+            @Override
+            public de.schultraeger.application.dto.SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
+            public de.schultraeger.application.dto.SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+            @Override
+            public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+                return List.of(
+                    createStubInfo("schema1"),
+                    createStubInfo("  "),
+                    createStubInfo(null)
+                );
+            }
+        };
+
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+
+        int imported = service.importSchoolsFromSvwsServer(server);
+
+        assertEquals(1, imported);
+        assertEquals(1, repo.findAllSchools().size());
+        assertTrue(repo.findByServerIdAndSchema(SERVER_ID, "schema1").isPresent());
+    }
+
     private SchuleService service(SchuleRepository repo, SvwsServerRepository serverRepo) {
         return new SchuleService(repo, null, new StubCipher(), serverRepo);
     }
