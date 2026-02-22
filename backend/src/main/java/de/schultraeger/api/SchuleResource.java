@@ -3,9 +3,12 @@ package de.schultraeger.api;
 import de.schultraeger.api.dto.SchuleResponse;
 import de.schultraeger.api.dto.SchuleRequest;
 import de.schultraeger.api.dto.SchuleStammdatenResponse;
+import de.schultraeger.api.dto.SchuelerAdresseResponse;
+import de.schultraeger.api.dto.SchuelerAuswahlResponse;
 import de.schultraeger.application.SchuleService;
 import de.schultraeger.application.dto.SchuleStammdatenResult;
 import de.schultraeger.application.dto.SchuleStatistikenGesamt;
+import de.schultraeger.application.dto.SchuelerStammdaten;
 import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
@@ -17,10 +20,12 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 /**
@@ -56,6 +61,48 @@ public class SchuleResource {
     @Path("{id}/statistiken")
     public SchuleStatistikenGesamt getStatistiken(@PathParam("id") UUID id) {
         return service.getStatistiken(id);
+    }
+
+    @GET
+    @Path("{id}/schueler/auswahlliste")
+    public List<SchuelerAuswahlResponse> getSchuelerAuswahlliste(@PathParam("id") UUID id) {
+        try {
+            return service.getSchuelerAuswahlliste(id)
+                    .stream()
+                    .map(s -> new SchuelerAuswahlResponse(
+                            s.id(),
+                            s.nachname(),
+                            s.vorname(),
+                            s.geburtsdatum(),
+                            s.status()
+                    ))
+                    .toList();
+        } catch (IllegalStateException ex) {
+            throw new WebApplicationException(ex.getMessage(), Response.Status.BAD_REQUEST);
+        }
+    }
+
+    @GET
+    @Path("{id}/schueler/{schuelerId}/stammdaten")
+    public SchuelerAdresseResponse getSchuelerStammdaten(@PathParam("id") UUID id, @PathParam("schuelerId") Long schuelerId) {
+        try {
+            SchuelerStammdaten s = service.getSchuelerStammdaten(id, schuelerId);
+            return new SchuelerAdresseResponse(
+                    s.id(),
+                    s.nachname(),
+                    s.vorname(),
+                    s.geburtsdatum(),
+                    s.strassenname(),
+                    s.hausnummer(),
+                    s.hausnummerZusatz(),
+                    s.plz(),
+                    s.ort()
+            );
+        } catch (NoSuchElementException ex) {
+            throw new WebApplicationException(ex.getMessage(), Response.Status.NOT_FOUND);
+        } catch (IllegalStateException ex) {
+            throw new WebApplicationException(ex.getMessage(), Response.Status.BAD_REQUEST);
+        }
     }
 
     @POST

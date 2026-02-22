@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public record SchuleStammdaten(
         Long schulNr,
         @JsonProperty("bezeichnung1") String bezeichnung1,
-        String schulform
+        String schulform,
+        @JsonProperty("idSchuljahresabschnitt") Integer idSchuljahresabschnitt
 ) {
 }

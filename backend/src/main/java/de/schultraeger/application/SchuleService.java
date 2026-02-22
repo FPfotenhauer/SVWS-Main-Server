@@ -4,6 +4,9 @@ import de.schultraeger.application.dto.SchuleStammdaten;
 import de.schultraeger.application.dto.SchuleStammdatenResult;
 import de.schultraeger.application.dto.SchuleStatistikenGesamt;
 import de.schultraeger.application.dto.SchuleStatistikenRaw;
+import de.schultraeger.application.dto.OrtKatalogEintrag;
+import de.schultraeger.application.dto.SchuelerAuswahl;
+import de.schultraeger.application.dto.SchuelerStammdaten;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.application.port.out.PasswordCipher;
 import de.schultraeger.application.port.out.SvwsClient;
@@ -21,6 +24,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 /**
@@ -277,7 +281,7 @@ public class SchuleService {
                     schule.id(),
                     schule.svwsSchema(),
                     serverName,
-                    new SchuleStammdaten(fallbackInfo.schulnummer(), fallbackInfo.name(), null),
+                    new SchuleStammdaten(fallbackInfo.schulnummer(), fallbackInfo.name(), null, null),
                     "Eingeschränkte Ansicht: " + ex.getMessage()
                 );
             }
@@ -341,6 +345,112 @@ public class SchuleService {
             LOG.warnf(ex, "Statistiken nicht erreichbar für Schema %s (Status %d)", schule.svwsSchema(), ex.getStatusCode());
             throw new IllegalStateException("Statistiken nicht erreichbar: " + ex.getMessage(), ex);
         }
+    }
+
+    public List<SchuelerAuswahl> getSchuelerAuswahlliste(UUID schuleId) {
+        Schule schule = getById(schuleId);
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + schuleId));
+
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            throw new IllegalStateException("Fehler beim Lesen der Anmeldedaten", ex);
+        }
+
+        if (credentials == null) {
+            throw new IllegalStateException("Anmeldedaten fehlen für Schule " + schuleId);
+        }
+
+        SchuleStammdaten stammdaten = svwsClient.getSchuleStammdaten(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1]
+        );
+
+        Integer abschnitt = stammdaten != null ? stammdaten.idSchuljahresabschnitt() : null;
+        if (abschnitt == null) {
+            throw new IllegalStateException("idSchuljahresabschnitt konnte nicht ermittelt werden");
+        }
+
+        return svwsClient.getSchuelerAuswahlliste(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1],
+                abschnitt,
+                List.of(0, 1, 2, 3)
+        );
+    }
+
+    public SchuelerStammdaten getSchuelerStammdaten(UUID schuleId, Long schuelerId) {
+        Schule schule = getById(schuleId);
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + schuleId));
+
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            throw new IllegalStateException("Fehler beim Lesen der Anmeldedaten", ex);
+        }
+
+        if (credentials == null) {
+            throw new IllegalStateException("Anmeldedaten fehlen für Schule " + schuleId);
+        }
+
+        SchuelerStammdaten schueler = svwsClient.getSchuelerStammdatenByIds(
+                        server.baseUrl(),
+                        schule.svwsSchema(),
+                        credentials[0],
+                        credentials[1],
+                        List.of(schuelerId)
+                )
+                .stream()
+                .filter(s -> s.id() != null && s.id().equals(schuelerId))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("Schüler nicht gefunden: " + schuelerId));
+
+        String plz = schueler.plz();
+        String ort = schueler.ort();
+
+        if (schueler.wohnortID() != null) {
+            List<OrtKatalogEintrag> orte = svwsClient.getOrte(
+                    server.baseUrl(),
+                    schule.svwsSchema(),
+                    credentials[0],
+                    credentials[1]
+            );
+            OrtKatalogEintrag ortEintrag = orte.stream()
+                    .filter(o -> o.id() != null && o.id().equals(schueler.wohnortID()))
+                    .findFirst()
+                    .orElse(null);
+            if (ortEintrag != null) {
+                if (ortEintrag.plz() != null && !ortEintrag.plz().isBlank()) {
+                    plz = ortEintrag.plz();
+                }
+                if (ortEintrag.ortsname() != null && !ortEintrag.ortsname().isBlank()) {
+                    ort = ortEintrag.ortsname();
+                }
+            }
+        }
+
+        return new SchuelerStammdaten(
+                schueler.id(),
+                schueler.nachname(),
+                schueler.vorname(),
+                schueler.geburtsdatum(),
+                schueler.strassenname(),
+                schueler.hausnummer(),
+                schueler.hausnummerZusatz(),
+                schueler.wohnortID(),
+                plz,
+                ort
+        );
     }
 
     private SchuleStatistikenGesamt computeAggregates(SchuleStatistikenRaw rawData) {

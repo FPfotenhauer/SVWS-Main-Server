@@ -13,13 +13,16 @@ import BenutzerVerwaltung from "./components/BenutzerVerwaltung.vue";
 import Support from "./components/Support.vue";
 import Entfernungsberechnung from "./components/Entfernungsberechnung.vue";
 import EntfernungsberechnungSchule from "./components/EntfernungsberechnungSchule.vue";
+import EntfernungsberechnungAdresse from "./components/EntfernungsberechnungAdresse.vue";
 import ChangePasswordModal from "./components/ChangePasswordModal.vue";
 import type { SchuleStammdatenResponse } from "./types/schule";
+import type { SchuelerAdresse } from "./types/schueler";
 
 const auth = useAuthStore();
 const showChangePasswordModal = ref(false);
 const selectedDistanceSchool = ref<SchuleStammdatenResponse | null>(null);
-const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'entfernungsberechnung' | 'entfernungsberechnung-schule' | 'support'>('dashboard');
+const selectedDistanceAddress = ref<SchuelerAdresse | null>(null);
+const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'entfernungsberechnung' | 'entfernungsberechnung-schule' | 'entfernungsberechnung-adresse' | 'support'>('dashboard');
 
 onMounted(async () => {
   await auth.handleRedirect();
@@ -87,6 +90,8 @@ onMounted(async () => {
                             ? 'Entfernungsberechnung'
                             : currentView === 'entfernungsberechnung-schule'
                               ? 'Entfernungsberechnung · Schüler:in suchen'
+                              : currentView === 'entfernungsberechnung-adresse'
+                                ? 'Entfernungsberechnung · Adressdaten'
                           : currentView === 'support'
                             ? 'Support'
                             : 'Schulstatistiken'
@@ -132,6 +137,13 @@ onMounted(async () => {
         v-else-if="currentView === 'entfernungsberechnung-schule'"
         :school="selectedDistanceSchool"
         @back="currentView = 'entfernungsberechnung'"
+        @show-address="(adresse) => { selectedDistanceAddress = adresse; currentView = 'entfernungsberechnung-adresse'; }"
+      />
+      <EntfernungsberechnungAdresse
+        v-else-if="currentView === 'entfernungsberechnung-adresse'"
+        :school="selectedDistanceSchool"
+        :adresse="selectedDistanceAddress"
+        @back="currentView = 'entfernungsberechnung-schule'"
       />
       <Support v-else-if="currentView === 'support'" />
     </main>

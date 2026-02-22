@@ -2,6 +2,9 @@ package de.schultraeger.infrastructure.svws;
 
 import de.schultraeger.application.dto.SchuleStammdaten;
 import de.schultraeger.application.dto.SchuleStatistikenRaw;
+import de.schultraeger.application.dto.OrtKatalogEintrag;
+import de.schultraeger.application.dto.SchuelerAuswahl;
+import de.schultraeger.application.dto.SchuelerStammdaten;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
@@ -9,6 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.jboss.logging.Logger;
 
@@ -20,6 +24,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -154,6 +159,145 @@ public class SvwsClientRest implements SvwsClient {
             log.errorf(ex, "SVWS getSchuleStatistiken failed for schema %s", schema);
             throw new SvwsClientException("SVWS getSchuleStatistiken failed", -1, ex);
         }
+    }
+
+    @Override
+    public List<SchuelerAuswahl> getSchuelerAuswahlliste(String baseUrl, String schema, String username, String password, Integer abschnitt, List<Integer> status) {
+        HttpClient client = buildHttpClient();
+        try {
+            String encodedSchema = schema != null ? URLEncoder.encode(schema, StandardCharsets.UTF_8) : "";
+            StringBuilder urlBuilder = new StringBuilder(baseUrl)
+                    .append("/db/")
+                    .append(encodedSchema)
+                    .append("/schueler/abschnitt/")
+                    .append(abschnitt)
+                    .append("/auswahlliste");
+
+            if (status != null && !status.isEmpty()) {
+                urlBuilder.append("?");
+                for (int i = 0; i < status.size(); i++) {
+                    if (i > 0) {
+                        urlBuilder.append("&");
+                    }
+                    urlBuilder.append("status=").append(status.get(i));
+                }
+            }
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(urlBuilder.toString()))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                return parseListResponse(response.body(), new TypeReference<List<SchuelerAuswahl>>() {});
+            }
+            log.warnf("SVWS getSchuelerAuswahlliste failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS getSchuelerAuswahlliste failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS getSchuelerAuswahlliste failed for schema %s", schema);
+            throw new SvwsClientException("SVWS getSchuelerAuswahlliste failed", -1, ex);
+        }
+    }
+
+    @Override
+    public List<SchuelerStammdaten> getSchuelerStammdaten(String baseUrl, String schema, String username, String password) {
+        return getSchuelerStammdatenByIds(baseUrl, schema, username, password, List.of());
+        }
+
+        @Override
+        public List<SchuelerStammdaten> getSchuelerStammdatenByIds(String baseUrl, String schema, String username, String password, List<Long> schuelerIds) {
+        HttpClient client = buildHttpClient();
+        try {
+            String encodedSchema = schema != null ? URLEncoder.encode(schema, StandardCharsets.UTF_8) : "";
+            String url = baseUrl + "/db/" + encodedSchema + "/schueler/stammdaten";
+            String payload = objectMapper.writeValueAsString(schuelerIds == null ? List.of() : schuelerIds);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                return parseListResponse(response.body(), new TypeReference<List<SchuelerStammdaten>>() {});
+            }
+            log.warnf("SVWS getSchuelerStammdatenByIds failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS getSchuelerStammdaten failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS getSchuelerStammdatenByIds failed for schema %s", schema);
+            throw new SvwsClientException("SVWS getSchuelerStammdaten failed", -1, ex);
+        }
+    }
+
+    @Override
+    public List<OrtKatalogEintrag> getOrte(String baseUrl, String schema, String username, String password) {
+        HttpClient client = buildHttpClient();
+        try {
+            String encodedSchema = schema != null ? URLEncoder.encode(schema, StandardCharsets.UTF_8) : "";
+            String url = baseUrl + "/db/" + encodedSchema + "/orte";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", basicAuth(username, password))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                return parseListResponse(response.body(), new TypeReference<List<OrtKatalogEintrag>>() {});
+            }
+            log.warnf("SVWS getOrte failed for schema %s with status %d", schema, response.statusCode());
+            throw new SvwsClientException("SVWS getOrte failed with status " + response.statusCode(), response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.errorf(ex, "SVWS getOrte failed for schema %s", schema);
+            throw new SvwsClientException("SVWS getOrte failed", -1, ex);
+        }
+    }
+
+    private <T> List<T> parseListResponse(String responseBody, TypeReference<List<T>> typeReference) throws Exception {
+        JsonNode root = objectMapper.readTree(responseBody);
+        if (root.isArray()) {
+            return objectMapper.convertValue(root, typeReference);
+        }
+
+        if (root.isObject()) {
+            JsonNode candidates = root.get("daten");
+            if (candidates == null) {
+                candidates = root.get("schueler");
+            }
+            if (candidates == null) {
+                candidates = root.get("items");
+            }
+            if (candidates == null) {
+                var fields = root.fields();
+                while (fields.hasNext()) {
+                    var field = fields.next();
+                    if (field.getValue() != null && field.getValue().isArray()) {
+                        candidates = field.getValue();
+                        break;
+                    }
+                }
+            }
+            if (candidates != null && candidates.isArray()) {
+                return objectMapper.convertValue(candidates, typeReference);
+            }
+        }
+
+        throw new IllegalStateException("Unerwartetes Antwortformat von SVWS");
     }
 
     @Override

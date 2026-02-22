@@ -2,6 +2,9 @@ package de.schultraeger.application.port.out;
 
 import de.schultraeger.application.dto.SchuleStammdaten;
 import de.schultraeger.application.dto.SchuleStatistikenRaw;
+import de.schultraeger.application.dto.OrtKatalogEintrag;
+import de.schultraeger.application.dto.SchuelerAuswahl;
+import de.schultraeger.application.dto.SchuelerStammdaten;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import java.util.List;
 
@@ -16,6 +19,22 @@ public interface SvwsClient {
     SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password);
 
     SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password);
+
+    default List<SchuelerAuswahl> getSchuelerAuswahlliste(String baseUrl, String schema, String username, String password, Integer abschnitt, List<Integer> status) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default List<SchuelerStammdaten> getSchuelerStammdaten(String baseUrl, String schema, String username, String password) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default List<SchuelerStammdaten> getSchuelerStammdatenByIds(String baseUrl, String schema, String username, String password, List<Long> schuelerIds) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    default List<OrtKatalogEintrag> getOrte(String baseUrl, String schema, String username, String password) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password);
 
