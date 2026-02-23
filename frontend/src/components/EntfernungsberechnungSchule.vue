@@ -39,7 +39,7 @@
         <button class="ghost" type="button" @click="loadSchueler" :disabled="loadingSchueler">
           {{ loadingSchueler ? 'Aktualisiere …' : 'Liste aktualisieren' }}
         </button>
-        <span class="count">{{ sortedSchueler.length }} von {{ schueler.length }} Schüler:innen</span>
+        <span class="count">{{ sortedSchueler.length }} von {{ statusFilteredTotal }} Schüler:innen</span>
       </div>
     </div>
 
@@ -151,13 +151,21 @@ const filteredSchueler = computed(() => {
   const nachname = normalize(searchNachname.value);
   const vorname = normalize(searchVorname.value);
   const geburtsdatum = searchGeburtsdatum.value;
+  const allowedStatus = new Set([0, 1, 2, 3]);
 
   return schueler.value.filter((item) => {
+    const status = Number(item.status);
+    const matchStatus = allowedStatus.has(status);
     const matchNachname = !nachname || normalize(item.nachname).includes(nachname);
     const matchVorname = !vorname || normalize(item.vorname).includes(vorname);
     const matchGeburtsdatum = !geburtsdatum || (item.geburtsdatum ?? '').startsWith(geburtsdatum);
-    return matchNachname && matchVorname && matchGeburtsdatum;
+    return matchStatus && matchNachname && matchVorname && matchGeburtsdatum;
   });
+});
+
+const statusFilteredTotal = computed(() => {
+  const allowedStatus = new Set([0, 1, 2, 3]);
+  return schueler.value.filter((item) => allowedStatus.has(Number(item.status))).length;
 });
 
 const sortedSchueler = computed(() => {
