@@ -10,11 +10,11 @@
         </div>
       </section>
 
-      <!-- Webnotenmanager Section -->
+      <!-- E-Mail Section -->
       <section class="idm-section">
-        <h2>Webnotenmanager</h2>
+        <h2>E-Mail-Service</h2>
         <div class="section-content">
-          <p>Webnotenmanager Verwaltung Funktionaliät kommt in Kürze.</p>
+          <p>E-Mail-Service Verwaltung Funktionaliät kommt in Kürze.</p>
           <!-- Functionality will be added here -->
         </div>
       </section>
@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 // Component for IDM Verwaltung page with sections for
-// Lernplattformen and Webnotenmanager
+// Lernplattformen and E-Mail-Service
 </script>
 
 <style scoped>

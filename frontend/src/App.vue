@@ -11,6 +11,8 @@ import Schuelerzahlen from "./components/Schuelerzahlen.vue";
 import IDMVerwaltung from "./components/IDMVerwaltung.vue";
 import BenutzerVerwaltung from "./components/BenutzerVerwaltung.vue";
 import Support from "./components/Support.vue";
+import MeldedatenUndSchulbewerbung from "./components/MeldedatenUndSchulbewerbung.vue";
+import Webnotenmanager from "./components/Webnotenmanager.vue";
 import Entfernungsberechnung from "./components/Entfernungsberechnung.vue";
 import EntfernungsberechnungSchule from "./components/EntfernungsberechnungSchule.vue";
 import EntfernungsberechnungAdresse from "./components/EntfernungsberechnungAdresse.vue";
@@ -22,7 +24,7 @@ const auth = useAuthStore();
 const showChangePasswordModal = ref(false);
 const selectedDistanceSchool = ref<SchuleStammdatenResponse | null>(null);
 const selectedDistanceAddress = ref<SchuelerAdresse | null>(null);
-const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'entfernungsberechnung' | 'entfernungsberechnung-schule' | 'entfernungsberechnung-adresse' | 'support'>('dashboard');
+const currentView = ref<'dashboard' | 'servers' | 'schulkatalog' | 'verwaltete-schulen' | 'schulstatistiken' | 'schuelerzahlen' | 'idm-verwaltung' | 'benutzerverwaltung' | 'entfernungsberechnung' | 'entfernungsberechnung-schule' | 'entfernungsberechnung-adresse' | 'support' | 'meldedaten-schulbewerbung' | 'webnotenmanager'>('dashboard');
 
 onMounted(async () => {
   await auth.handleRedirect();
@@ -62,6 +64,14 @@ onMounted(async () => {
   window.addEventListener('navigate-to-support', () => {
     currentView.value = 'support';
   });
+
+  window.addEventListener('navigate-to-meldedaten-und-schulbewerbung', () => {
+    currentView.value = 'meldedaten-schulbewerbung';
+  });
+
+  window.addEventListener('navigate-to-webnotenmanager', () => {
+    currentView.value = 'webnotenmanager';
+  });
 });
 </script>
 
@@ -92,9 +102,13 @@ onMounted(async () => {
                               ? 'Entfernungsberechnung · Schüler:in suchen'
                               : currentView === 'entfernungsberechnung-adresse'
                                 ? 'Entfernungsberechnung · Adressdaten'
-                          : currentView === 'support'
-                            ? 'Support'
-                            : 'Schulstatistiken'
+                                : currentView === 'support'
+                                  ? 'Support'
+                                  : currentView === 'meldedaten-schulbewerbung'
+                                    ? 'Meldedaten und Schulbewerbung.de'
+                                    : currentView === 'webnotenmanager'
+                                      ? 'Webnotenmanager'
+                                      : 'Schulstatistiken'
           }}
         </h1>
         <p v-if="currentView === 'schulkatalog'" class="header-subtitle">Alle Schulen in Nordrhein-Westfalen</p>
@@ -121,6 +135,8 @@ onMounted(async () => {
         @navigate-to-benutzer-verwaltung="currentView = 'benutzerverwaltung'"
         @navigate-to-entfernungsberechnung="currentView = 'entfernungsberechnung'"
         @navigate-to-support="currentView = 'support'"
+        @navigate-to-meldedaten-und-schulbewerbung="currentView = 'meldedaten-schulbewerbung'"
+        @navigate-to-webnotenmanager="currentView = 'webnotenmanager'"
       />
       <SvwsServerManager v-else-if="currentView === 'servers'" />
       <SchulkatalogeintragBrowser v-else-if="currentView === 'schulkatalog'" />
@@ -147,6 +163,8 @@ onMounted(async () => {
         @back="currentView = 'entfernungsberechnung-schule'"
       />
       <Support v-else-if="currentView === 'support'" />
+      <MeldedatenUndSchulbewerbung v-else-if="currentView === 'meldedaten-schulbewerbung'" />
+      <Webnotenmanager v-else-if="currentView === 'webnotenmanager'" />
     </main>
 
     <ChangePasswordModal :visible="showChangePasswordModal" @close="showChangePasswordModal = false" />
