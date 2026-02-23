@@ -17,3 +17,12 @@ export interface SchuelerAdresse {
   plz?: string | null;
   ort?: string | null;
 }
+
+export interface DistanceResult {
+  distance_meters?: number | null;
+  distance_km?: number | null;
+  time_milliseconds?: number | null;
+  time_minutes?: number | null;
+  polyline?: string | null;
+  error?: string | null;
+}

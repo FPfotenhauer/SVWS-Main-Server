@@ -1,0 +1,27 @@
+version: '3.8'
+
+# Optional GraphHopper service for distance calculation
+# To use this, run: docker compose -f docker-compose.yml -f docker-compose.graphhopper.yml up -d
+
+services:
+  graphhopper:
+    # Note: The standard graphhopper/graphhopper image is not publicly available
+    # Consider building a custom image or using OSRM instead
+    # For now, this is a placeholder configuration
+    image: graphhopper/graphhopper:latest
+    environment:
+      GRAPH_DIR: /graphhopper/data
+      JAVA_OPTS: "-Xms512m -Xmx2g -Ddw.server.application_connectors[0].port=8989"
+    volumes:
+      - graphhopper_data:/graphhopper/data
+    ports:
+      - "8989:8989"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  graphhopper_data:

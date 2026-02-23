@@ -230,6 +230,11 @@ public class SchuleService {
                 .toList();
     }
 
+    public SchuleStammdatenResult getSchuleStammdatenById(UUID schuleId) {
+        Schule schule = getById(schuleId);
+        return buildStammdatenResult(schule);
+    }
+
     private SchuleStammdatenResult buildStammdatenResult(Schule schule) {
         SvwsServer server = serverRepository.getById(schule.svwsServerId()).orElse(null);
         String serverName = server != null ? server.name() : "Unbekannter Server";
@@ -371,7 +376,7 @@ public class SchuleService {
                 credentials[1]
         );
 
-        Integer abschnitt = stammdaten != null ? stammdaten.idSchuljahresabschnitt() : null;
+        Integer abschnitt = stammdaten != null ? stammdaten.getIdSchuljahresabschnitt() : null;
         if (abschnitt == null) {
             throw new IllegalStateException("idSchuljahresabschnitt konnte nicht ermittelt werden");
         }
@@ -411,14 +416,14 @@ public class SchuleService {
                         List.of(schuelerId)
                 )
                 .stream()
-                .filter(s -> s.id() != null && s.id().equals(schuelerId))
+                .filter(s -> s.getId() != null && s.getId().equals(schuelerId))
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("Schüler nicht gefunden: " + schuelerId));
 
-        String plz = schueler.plz();
-        String ort = schueler.ort();
+        String plz = schueler.getPlz();
+        String ort = schueler.getOrt();
 
-        if (schueler.wohnortID() != null) {
+        if (schueler.getWohnortID() != null) {
             List<OrtKatalogEintrag> orte = svwsClient.getOrte(
                     server.baseUrl(),
                     schule.svwsSchema(),
@@ -426,7 +431,7 @@ public class SchuleService {
                     credentials[1]
             );
             OrtKatalogEintrag ortEintrag = orte.stream()
-                    .filter(o -> o.id() != null && o.id().equals(schueler.wohnortID()))
+                    .filter(o -> o.id() != null && o.id().equals(schueler.getWohnortID()))
                     .findFirst()
                     .orElse(null);
             if (ortEintrag != null) {
@@ -439,18 +444,11 @@ public class SchuleService {
             }
         }
 
-        return new SchuelerStammdaten(
-                schueler.id(),
-                schueler.nachname(),
-                schueler.vorname(),
-                schueler.geburtsdatum(),
-                schueler.strassenname(),
-                schueler.hausnummer(),
-                schueler.hausnummerZusatz(),
-                schueler.wohnortID(),
-                plz,
-                ort
-        );
+        // Update the object with enriched data
+        schueler.setPlz(plz);
+        schueler.setOrt(ort);
+        
+        return schueler;
     }
 
     private SchuleStatistikenGesamt computeAggregates(SchuleStatistikenRaw rawData) {

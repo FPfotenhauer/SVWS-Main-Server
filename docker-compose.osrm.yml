@@ -1,0 +1,27 @@
+version: '3.8'
+
+# OSRM (Open Source Routing Machine) for distance calculation
+# OSRM is an open-source routing engine that works great as a GraphHopper alternative
+# Usage: docker compose -f docker-compose.yml -f docker-compose.osrm.yml up -d
+# Note: Germany OSM data should be downloaded first to docker/osrm_data/germany-latest.osm.pbf
+
+services:
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: svws-osrm-router
+    volumes:
+      - ./docker/osrm_data:/data
+    environment:
+      OSRM_ALGORITHMS: "mld"
+    ports:
+      - "5000:5000"
+    command: bash -c 'cd /data && if [ ! -f germany-latest.osm.pbf.osrm.mld ]; then echo "Processing Germany OSM data..."; osrm-extract -p /opt/osrm/profiles/car.lua germany-latest.osm.pbf && osrm-contract germany-latest.osm.pbf.osrm && rm germany-latest.osm.pbf germany-latest.osm.pbf.osrm && echo "OSM data ready!"; fi; echo "Starting OSRM server on port 5000..."; osrm-routed --algorithm=mld germany-latest.osm.pbf.osrm.mld'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  osrm_data:

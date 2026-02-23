@@ -1,25 +1,15 @@
 package de.schultraeger.application.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Student master data from SVWS including address and optional geocoding coordinates.
+ * Student address data suitable for distance calculation and geocoding.
+ * Can be created from SchuelerStammdaten.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class SchuelerStammdaten {
+public class SchuelerAdresse {
     
     @JsonProperty("id")
     private Long id;
-    
-    @JsonProperty("nachname")
-    private String nachname;
-    
-    @JsonProperty("vorname")
-    private String vorname;
-    
-    @JsonProperty("geburtsdatum")
-    private String geburtsdatum;
     
     @JsonProperty("strassenname")
     private String strassenname;
@@ -29,9 +19,6 @@ public class SchuelerStammdaten {
     
     @JsonProperty("hausnummerZusatz")
     private String hausnummerZusatz;
-    
-    @JsonProperty("wohnortID")
-    private Long wohnortID;
     
     @JsonProperty("plz")
     private String plz;
@@ -46,57 +33,41 @@ public class SchuelerStammdaten {
     @JsonProperty("longitude")
     private Double longitude;
     
-    @JsonProperty("geocodedAt")
-    private Long geocodedAt;  // Timestamp when geocoding was done
+    public SchuelerAdresse() {}
     
-    public SchuelerStammdaten() {}
-    
-    public SchuelerStammdaten(Long id, String nachname, String vorname, String geburtsdatum,
-                             String strassenname, String hausnummer, String hausnummerZusatz,
-                             Long wohnortID, String plz, String ort) {
+    public SchuelerAdresse(Long id, String strassenname, String hausnummer, 
+                          String hausnummerZusatz, String plz, String ort) {
         this.id = id;
-        this.nachname = nachname;
-        this.vorname = vorname;
-        this.geburtsdatum = geburtsdatum;
         this.strassenname = strassenname;
         this.hausnummer = hausnummer;
         this.hausnummerZusatz = hausnummerZusatz;
-        this.wohnortID = wohnortID;
         this.plz = plz;
         this.ort = ort;
     }
     
-    // Getters and Setters
+    /**
+     * Create from SchuelerStammdaten.
+     */
+    public static SchuelerAdresse from(SchuelerStammdaten stammdaten) {
+        SchuelerAdresse adresse = new SchuelerAdresse(
+                stammdaten.getId(),
+                stammdaten.getStrassenname(),
+                stammdaten.getHausnummer(),
+                stammdaten.getHausnummerZusatz(),
+                stammdaten.getPlz(),
+                stammdaten.getOrt()
+        );
+        adresse.setLatitude(stammdaten.getLatitude());
+        adresse.setLongitude(stammdaten.getLongitude());
+        return adresse;
+    }
+    
     public Long getId() {
         return id;
     }
     
     public void setId(Long id) {
         this.id = id;
-    }
-    
-    public String getNachname() {
-        return nachname;
-    }
-    
-    public void setNachname(String nachname) {
-        this.nachname = nachname;
-    }
-    
-    public String getVorname() {
-        return vorname;
-    }
-    
-    public void setVorname(String vorname) {
-        this.vorname = vorname;
-    }
-    
-    public String getGeburtsdatum() {
-        return geburtsdatum;
-    }
-    
-    public void setGeburtsdatum(String geburtsdatum) {
-        this.geburtsdatum = geburtsdatum;
     }
     
     public String getStrassenname() {
@@ -121,14 +92,6 @@ public class SchuelerStammdaten {
     
     public void setHausnummerZusatz(String hausnummerZusatz) {
         this.hausnummerZusatz = hausnummerZusatz;
-    }
-    
-    public Long getWohnortID() {
-        return wohnortID;
-    }
-    
-    public void setWohnortID(Long wohnortID) {
-        this.wohnortID = wohnortID;
     }
     
     public String getPlz() {
@@ -161,13 +124,5 @@ public class SchuelerStammdaten {
     
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
-    }
-    
-    public Long getGeocodedAt() {
-        return geocodedAt;
-    }
-    
-    public void setGeocodedAt(Long geocodedAt) {
-        this.geocodedAt = geocodedAt;
     }
 }

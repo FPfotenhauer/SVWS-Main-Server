@@ -10,6 +10,31 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
+  osrm:
+    image: osrm/osrm-backend:latest
+    volumes:
+      - ./docker/osrm_data:/data
+    ports:
+      - "5000:5000"
+    command: >
+      bash -c 'set -e; cd /data &&
+      INPUT_FILE="";
+      if [ -f germany-latest.osm.pbf ]; then INPUT_FILE="germany-latest.osm.pbf"; fi;
+      if [ -f germany-latest.osm.pbf.1 ]; then INPUT_FILE="germany-latest.osm.pbf.1"; fi;
+      if [ -z "$$INPUT_FILE" ]; then
+        echo "[error] Input file germany-latest.osm.pbf (or .1) not found in /data";
+        exit 1;
+      fi;
+      BASE_FILE="germany-latest.osrm";
+      if [ ! -f "$$BASE_FILE.hsgr" ]; then
+        echo "Processing OSM data from $$INPUT_FILE...";
+        osrm-extract -p /opt/car.lua "$$INPUT_FILE";
+        osrm-contract "$$BASE_FILE";
+        echo "OSM data ready!";
+      fi;
+      echo "Starting OSRM server on port 5000...";
+      osrm-routed "$$BASE_FILE"'
+
   backend:
     build:
       context: .
@@ -27,10 +52,12 @@ services:
       JWT_SIGN_KEY: ${JWT_SIGN_KEY:-}
       SVWS_PASSWORD_KEY: ${SVWS_PASSWORD_KEY:-}
       SVWS_TRUST_ALL: ${SVWS_TRUST_ALL:-true}
+      GRAPHHOPPER_URL: ${GRAPHHOPPER_URL:-http://osrm:5000}
     extra_hosts:
       - "svws-server:172.17.0.1"
     depends_on:
       - database
+      - osrm
 
   frontend:
     build:

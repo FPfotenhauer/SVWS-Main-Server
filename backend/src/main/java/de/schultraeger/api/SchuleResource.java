@@ -6,9 +6,12 @@ import de.schultraeger.api.dto.SchuleStammdatenResponse;
 import de.schultraeger.api.dto.SchuelerAdresseResponse;
 import de.schultraeger.api.dto.SchuelerAuswahlResponse;
 import de.schultraeger.application.SchuleService;
+import de.schultraeger.application.EntfernungsberechnungService;
 import de.schultraeger.application.dto.SchuleStammdatenResult;
 import de.schultraeger.application.dto.SchuleStatistikenGesamt;
 import de.schultraeger.application.dto.SchuelerStammdaten;
+import de.schultraeger.application.dto.DistanceResult;
+import de.schultraeger.application.dto.SchuelerAdresse;
 import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
@@ -36,10 +39,12 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 public class SchuleResource {
     private final SchuleService service;
+    private final EntfernungsberechnungService distanceService;
     private final SvwsServerRepository serverRepository;
 
-    public SchuleResource(SchuleService service, SvwsServerRepository serverRepository) {
+    public SchuleResource(SchuleService service, EntfernungsberechnungService distanceService, SvwsServerRepository serverRepository) {
         this.service = service;
+        this.distanceService = distanceService;
         this.serverRepository = serverRepository;
     }
 
@@ -88,20 +93,48 @@ public class SchuleResource {
         try {
             SchuelerStammdaten s = service.getSchuelerStammdaten(id, schuelerId);
             return new SchuelerAdresseResponse(
-                    s.id(),
-                    s.nachname(),
-                    s.vorname(),
-                    s.geburtsdatum(),
-                    s.strassenname(),
-                    s.hausnummer(),
-                    s.hausnummerZusatz(),
-                    s.plz(),
-                    s.ort()
+                    s.getId(),
+                    s.getNachname(),
+                    s.getVorname(),
+                    s.getGeburtsdatum(),
+                    s.getStrassenname(),
+                    s.getHausnummer(),
+                    s.getHausnummerZusatz(),
+                    s.getPlz(),
+                    s.getOrt()
             );
         } catch (NoSuchElementException ex) {
             throw new WebApplicationException(ex.getMessage(), Response.Status.NOT_FOUND);
         } catch (IllegalStateException ex) {
             throw new WebApplicationException(ex.getMessage(), Response.Status.BAD_REQUEST);
+        }
+    }
+
+    @GET
+    @Path("{id}/schueler/{schuelerId}/entfernung")
+    public DistanceResult getDistanceToStudent(@PathParam("id") UUID id, @PathParam("schuelerId") Long schuelerId) {
+        try {
+            // Get school stammdaten with address
+            SchuleStammdatenResult schoolResult = service.getSchuleStammdatenById(id);
+            if (schoolResult == null || schoolResult.stammdaten() == null) {
+                return new DistanceResult("School not found");
+            }
+            
+            // Get student address
+            SchuelerStammdaten studentData = service.getSchuelerStammdaten(id, schuelerId);
+            SchuelerAdresse studentAddress = SchuelerAdresse.from(studentData);
+            
+            // Calculate distance
+            return distanceService.calculateDistanceForStudent(
+                    schoolResult.stammdaten(),
+                    studentAddress
+            );
+        } catch (NoSuchElementException ex) {
+            return new DistanceResult("Student or school not found");
+        } catch (IllegalStateException ex) {
+            return new DistanceResult("Error: " + ex.getMessage());
+        } catch (Exception ex) {
+            return new DistanceResult("Distance calculation failed: " + ex.getMessage());
         }
     }
 
@@ -169,9 +202,9 @@ public class SchuleResource {
                 result.schuleId() != null ? result.schuleId().toString() : null,
                 result.svwsSchema(),
                 result.svwsServerName(),
-                result.stammdaten() != null ? result.stammdaten().schulNr() : null,
-                result.stammdaten() != null ? result.stammdaten().bezeichnung1() : null,
-                result.stammdaten() != null ? result.stammdaten().schulform() : null,
+                result.stammdaten() != null ? result.stammdaten().getSchulNr() : null,
+                result.stammdaten() != null ? result.stammdaten().getBezeichnung1() : null,
+                result.stammdaten() != null ? result.stammdaten().getSchulform() : null,
                 result.error()
         );
     }

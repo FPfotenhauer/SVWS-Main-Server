@@ -143,6 +143,7 @@ onMounted(async () => {
         v-else-if="currentView === 'entfernungsberechnung-adresse'"
         :school="selectedDistanceSchool"
         :adresse="selectedDistanceAddress"
+        :schoolId="selectedDistanceSchool?.id"
         @back="currentView = 'entfernungsberechnung-schule'"
       />
       <Support v-else-if="currentView === 'support'" />
