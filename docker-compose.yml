@@ -54,7 +54,7 @@ services:
       SVWS_TRUST_ALL: ${SVWS_TRUST_ALL:-true}
       GRAPHHOPPER_URL: ${GRAPHHOPPER_URL:-http://osrm:5000}
     extra_hosts:
-      - "svws-server:172.17.0.1"
+      - "svws-server:${SVWS_HOST:-localhost}"
     depends_on:
       - database
       - osrm
