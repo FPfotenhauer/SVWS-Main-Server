@@ -200,54 +200,32 @@ public class GraphHopperClient {
 
     private DistanceResult calculateDistanceOsrm(Double startLat, Double startLon, Double endLat, Double endLon) {
         try {
-            // Build routing request for OSRM
-            // OSRM format: /route/v1/driving/{lon},{lat};{lon},{lat}
-            String url = String.format(
-                    "%s/route/v1/driving/%f,%f;%f,%f?overview=false",
-                    graphHopperUrl,
-                    startLon, startLat,  // OSRM uses lon,lat order
-                    endLon, endLat
-            );
+            DistanceResult result = new DistanceResult();
             
-            var request = HttpRequest.newBuilder()
-                    .uri(new URI(url))
-                    .GET()
-                    .timeout(java.time.Duration.ofSeconds(30))
-                    .build();
+            // Calculate base car route
+            boolean carRouteSuccess = calculateOsrmRoute("driving", startLat, startLon, endLat, endLon, result, "car");
             
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
-            if (response.statusCode() != 200) {
-                String errorMsg = "OSRM routing request failed with status " + response.statusCode();
-                Log.warn(errorMsg);
-                return new DistanceResult(errorMsg);
+            if (carRouteSuccess && result.getDistanceMeters() != null) {
+                // Use the car route as base and estimate bike and foot times based on typical speeds
+                Long distanceMeters = result.getDistanceMeters();
+                
+                // Bike: Average speed ~20 km/h (~5.56 m/s)
+                Long bikeTimeSeconds = (distanceMeters * 1000) / 5560;
+                result.setBikeDistanceMeters(distanceMeters);
+                result.setBikeTimeMilliseconds(bikeTimeSeconds * 1000);
+                
+                // Walking: Average speed ~4-5 km/h (~1.25 m/s)
+                Long footTimeSeconds = (distanceMeters * 1000) / 1250;
+                result.setFootDistanceMeters(distanceMeters);
+                result.setFootTimeMilliseconds(footTimeSeconds * 1000);
+                
+                Log.debug("OSRM Distance calculated - Car: " + result.getDistanceKm() + " km, " +
+                        "Bike: " + result.getBikeDistanceKm() + " km (estimated), " +
+                        "Foot: " + result.getFootDistanceKm() + " km (estimated)");
+            } else {
+                return result;
             }
             
-            JsonNode responseBody = objectMapper.readTree(response.body());
-            
-            // Check OSRM response code
-            String code = responseBody.get("code").asText();
-            if (!"Ok".equals(code)) {
-                String errorMsg = "OSRM error: " + code;
-                Log.warn(errorMsg);
-                return new DistanceResult(errorMsg);
-            }
-            
-            // Extract route information
-            if (!responseBody.has("routes") || responseBody.get("routes").isEmpty()) {
-                return new DistanceResult("No route found");
-            }
-            
-            JsonNode route = responseBody.get("routes").get(0);
-            
-            // OSRM returns distance in meters and duration in seconds
-            Long distanceMeters = route.get("distance").asLong();
-            Long timeSeconds = route.get("duration").asLong();
-            Long timeMilliseconds = timeSeconds * 1000;
-            
-            DistanceResult result = new DistanceResult(distanceMeters, timeMilliseconds);
-            
-            Log.debug("OSRM Distance calculated: " + result.getDistanceKm() + " km, " + result.getTimeMinutes() + " minutes");
             return result;
             
         } catch (Exception e) {
@@ -263,6 +241,86 @@ public class GraphHopperClient {
             }
             Log.warn(message, e);
             return new DistanceResult(message);
+        }
+    }
+    
+    private boolean calculateOsrmRoute(String profile, Double startLat, Double startLon, Double endLat, Double endLon,
+                                        DistanceResult result, String modeKey) {
+        try {
+            // Build routing request for OSRM
+            // OSRM format: /route/v1/{profile}/{lon},{lat};{lon},{lat}
+            String url = String.format(
+                    "%s/route/v1/%s/%f,%f;%f,%f?overview=false",
+                    graphHopperUrl,
+                    profile,
+                    startLon, startLat,  // OSRM uses lon,lat order
+                    endLon, endLat
+            );
+            
+            var request = HttpRequest.newBuilder()
+                    .uri(new URI(url))
+                    .GET()
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .build();
+            
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() != 200) {
+                String errorMsg = profile + " routing failed with status " + response.statusCode();
+                Log.warn(errorMsg);
+                result.setError(errorMsg);
+                return false;
+            }
+            
+            JsonNode responseBody = objectMapper.readTree(response.body());
+            
+            // Check OSRM response code
+            String code = responseBody.get("code").asText();
+            if (!"Ok".equals(code)) {
+                String errorMsg = "OSRM error for " + profile + ": " + code;
+                Log.warn(errorMsg);
+                result.setError(errorMsg);
+                return false;
+            }
+            
+            // Extract route information
+            if (!responseBody.has("routes") || responseBody.get("routes").isEmpty()) {
+                String errorMsg = "No route found for " + profile;
+                Log.warn(errorMsg);
+                result.setError(errorMsg);
+                return false;
+            }
+            
+            JsonNode route = responseBody.get("routes").get(0);
+            
+            // OSRM returns distance in meters and duration in seconds
+            Long distanceMeters = route.get("distance").asLong();
+            Long timeSeconds = route.get("duration").asLong();
+            Long timeMilliseconds = timeSeconds * 1000;
+            
+            // Set the result for this mode
+            switch (modeKey) {
+                case "car":
+                    result.setDistanceMeters(distanceMeters);
+                    result.setTimeMilliseconds(timeMilliseconds);
+                    break;
+                case "bike":
+                    result.setBikeDistanceMeters(distanceMeters);
+                    result.setBikeTimeMilliseconds(timeMilliseconds);
+                    break;
+                case "foot":
+                    result.setFootDistanceMeters(distanceMeters);
+                    result.setFootTimeMilliseconds(timeMilliseconds);
+                    break;
+            }
+            
+            return true;
+            
+        } catch (Exception e) {
+            String errorMsg = "Error calculating " + profile + " route: " + e.getMessage();
+            Log.warn(errorMsg, e);
+            result.setError(errorMsg);
+            return false;
         }
     }
 }

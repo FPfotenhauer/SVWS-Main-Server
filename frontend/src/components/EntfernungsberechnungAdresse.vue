@@ -68,13 +68,40 @@
           <strong>Fehler:</strong> {{ distanceResult.error }}
         </div>
         <div v-else class="result-content">
-          <div class="result-item">
-            <span class="label">Entfernung</span>
-            <span class="value distance">{{ distanceResult.distance_km?.toFixed(1) ?? '–' }} km</span>
+          <div class="result-card">
+            <div class="result-mode">🚗 Auto</div>
+            <div class="result-item">
+              <span class="label">Entfernung</span>
+              <span class="value distance">{{ distanceResult.distance_km?.toFixed(1) ?? '–' }} km</span>
+            </div>
+            <div class="result-item">
+              <span class="label">Fahrtzeit</span>
+              <span class="value time">{{ formatTime(distanceResult.time_minutes) }}</span>
+            </div>
           </div>
-          <div class="result-item">
-            <span class="label">Fahrtzeit (Auto)</span>
-            <span class="value time">{{ formatTime(distanceResult.time_minutes) }}</span>
+          
+          <div class="result-card">
+            <div class="result-mode">🚴 Fahrrad</div>
+            <div class="result-item">
+              <span class="label">Entfernung</span>
+              <span class="value distance">{{ distanceResult.bike_distance_km?.toFixed(1) ?? '–' }} km</span>
+            </div>
+            <div class="result-item">
+              <span class="label">Fahrtzeit</span>
+              <span class="value time">{{ formatTime(distanceResult.bike_time_minutes) }}</span>
+            </div>
+          </div>
+          
+          <div class="result-card">
+            <div class="result-mode">🚶 Zu Fuß</div>
+            <div class="result-item">
+              <span class="label">Entfernung</span>
+              <span class="value distance">{{ distanceResult.foot_distance_km?.toFixed(1) ?? '–' }} km</span>
+            </div>
+            <div class="result-item">
+              <span class="label">Gehzeit</span>
+              <span class="value time">{{ formatTime(distanceResult.foot_time_minutes) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -289,14 +316,33 @@ h3 {
 
 .result-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
+}
+
+.result-card {
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.result-mode {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #f8fafc;
 }
 
 .result-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.result-item:last-child {
+  margin-bottom: 0;
 }
 
 .result-item .label {
@@ -308,7 +354,7 @@ h3 {
 
 .result-item .value {
   color: #e2e8f0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: bold;
 }
 

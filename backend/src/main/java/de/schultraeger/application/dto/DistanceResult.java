@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * DTO for distance calculation result between two locations.
- * Contains distance in meters, time in milliseconds, and optional polyline.
+ * Contains distance in meters, time in milliseconds for multiple transport modes.
  */
 public class DistanceResult {
     
+    // Car transport mode
     @JsonProperty("distance_meters")
     private Long distanceMeters;
     
@@ -19,6 +20,32 @@ public class DistanceResult {
     
     @JsonProperty("time_minutes")
     private Long timeMinutes;
+    
+    // Bike transport mode
+    @JsonProperty("bike_distance_meters")
+    private Long bikeDistanceMeters;
+    
+    @JsonProperty("bike_time_milliseconds")
+    private Long bikeTimeMilliseconds;
+    
+    @JsonProperty("bike_distance_km")
+    private Double bikeDistanceKm;
+    
+    @JsonProperty("bike_time_minutes")
+    private Long bikeTimeMinutes;
+    
+    // Foot transport mode
+    @JsonProperty("foot_distance_meters")
+    private Long footDistanceMeters;
+    
+    @JsonProperty("foot_time_milliseconds")
+    private Long footTimeMilliseconds;
+    
+    @JsonProperty("foot_distance_km")
+    private Double footDistanceKm;
+    
+    @JsonProperty("foot_time_minutes")
+    private Long footTimeMinutes;
     
     @JsonProperty("polyline")
     private String polyline;  // Encoded polyline string (optional)
@@ -75,6 +102,82 @@ public class DistanceResult {
     
     public void setTimeMinutes(Long timeMinutes) {
         this.timeMinutes = timeMinutes;
+    }
+    
+    public Long getBikeDistanceMeters() {
+        return bikeDistanceMeters;
+    }
+    
+    public void setBikeDistanceMeters(Long bikeDistanceMeters) {
+        this.bikeDistanceMeters = bikeDistanceMeters;
+        if (bikeDistanceMeters != null) {
+            this.bikeDistanceKm = bikeDistanceMeters / 1000.0;
+        }
+    }
+    
+    public Long getBikeTimeMilliseconds() {
+        return bikeTimeMilliseconds;
+    }
+    
+    public void setBikeTimeMilliseconds(Long bikeTimeMilliseconds) {
+        this.bikeTimeMilliseconds = bikeTimeMilliseconds;
+        if (bikeTimeMilliseconds != null) {
+            this.bikeTimeMinutes = bikeTimeMilliseconds / 60000;
+        }
+    }
+    
+    public Double getBikeDistanceKm() {
+        return bikeDistanceKm;
+    }
+    
+    public void setBikeDistanceKm(Double bikeDistanceKm) {
+        this.bikeDistanceKm = bikeDistanceKm;
+    }
+    
+    public Long getBikeTimeMinutes() {
+        return bikeTimeMinutes;
+    }
+    
+    public void setBikeTimeMinutes(Long bikeTimeMinutes) {
+        this.bikeTimeMinutes = bikeTimeMinutes;
+    }
+    
+    public Long getFootDistanceMeters() {
+        return footDistanceMeters;
+    }
+    
+    public void setFootDistanceMeters(Long footDistanceMeters) {
+        this.footDistanceMeters = footDistanceMeters;
+        if (footDistanceMeters != null) {
+            this.footDistanceKm = footDistanceMeters / 1000.0;
+        }
+    }
+    
+    public Long getFootTimeMilliseconds() {
+        return footTimeMilliseconds;
+    }
+    
+    public void setFootTimeMilliseconds(Long footTimeMilliseconds) {
+        this.footTimeMilliseconds = footTimeMilliseconds;
+        if (footTimeMilliseconds != null) {
+            this.footTimeMinutes = footTimeMilliseconds / 60000;
+        }
+    }
+    
+    public Double getFootDistanceKm() {
+        return footDistanceKm;
+    }
+    
+    public void setFootDistanceKm(Double footDistanceKm) {
+        this.footDistanceKm = footDistanceKm;
+    }
+    
+    public Long getFootTimeMinutes() {
+        return footTimeMinutes;
+    }
+    
+    public void setFootTimeMinutes(Long footTimeMinutes) {
+        this.footTimeMinutes = footTimeMinutes;
     }
     
     public String getPolyline() {
