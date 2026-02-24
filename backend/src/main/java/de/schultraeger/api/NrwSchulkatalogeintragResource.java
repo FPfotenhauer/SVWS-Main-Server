@@ -120,6 +120,7 @@ public class NrwSchulkatalogeintragResource {
         return new NrwSchulkatalogeintragResponse(
                 domain.id().toString(),
                 domain.schulnummer(),
+                domain.oeart(),
             domain.amtsbez1(),
             domain.amtsbez2(),
             domain.amtsbez3(),

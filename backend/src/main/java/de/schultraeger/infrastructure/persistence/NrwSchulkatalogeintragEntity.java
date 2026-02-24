@@ -22,6 +22,9 @@ public class NrwSchulkatalogeintragEntity {
     @Column(name = "schulnummer", nullable = false, unique = true, length = 50)
     public String schulnummer;
 
+    @Column(name = "oeart", length = 10)
+    public String oeart;
+
     @Column(name = "amtsbez1", length = 255)
     public String amtsbez1;
 

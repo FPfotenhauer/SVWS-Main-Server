@@ -205,6 +205,8 @@ const selectedSchool = ref<NrwSchulkatalogeintrag | null>(null);
 const sortBy = ref<string>('schulnummer');
 const sortDirection = ref<'asc' | 'desc'>('asc');
 
+const isFilteredSchool = (school: NrwSchulkatalogeintrag) => school.oeart === '1';
+
 const sortedSchools = computed(() => schools.value);
 
 const totalPages = computed(() => {
@@ -216,7 +218,7 @@ const loadSchools = async () => {
   error.value = '';
   try {
     const result = await nrwKatalogApi.getSchools(currentPage.value, pageSize, sortBy.value, sortDirection.value);
-    schools.value = result.schools;
+    schools.value = result.schools.filter(isFilteredSchool);
     totalSchools.value = result.total;
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
@@ -234,7 +236,7 @@ const executeSearch = async () => {
     error.value = '';
     try {
       const result = await nrwKatalogApi.searchSchools(searchQuery.value, currentPage.value, pageSize, sortBy.value, sortDirection.value);
-      schools.value = result.schools;
+      schools.value = result.schools.filter(isFilteredSchool);
       totalSchools.value = result.total;
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten';
