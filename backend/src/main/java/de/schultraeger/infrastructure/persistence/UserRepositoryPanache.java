@@ -4,6 +4,7 @@ import de.schultraeger.application.port.out.UserRepository;
 import de.schultraeger.domain.User;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,5 +33,12 @@ public class UserRepositoryPanache implements PanacheRepository<UserEntity>, Use
         return find("id", id)
             .firstResultOptional()
             .map(UserEntity::toDomain);
+    }
+
+    @Override
+    public List<User> findAllUsers() {
+        return listAll().stream()
+            .map(UserEntity::toDomain)
+            .toList();
     }
 }

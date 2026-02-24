@@ -6,7 +6,9 @@ import de.schultraeger.domain.User;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class AuthService {
@@ -19,6 +21,12 @@ public class AuthService {
     public Optional<User> authenticate(String username, String password) {
         return userRepository.findByUsername(username)
             .filter(user -> passwordHasher.verify(password, user.passwordHash()));
+    }
+
+    public List<User> listUsers() {
+        return userRepository.findAllUsers().stream()
+            .sorted((a, b) -> a.username().compareToIgnoreCase(b.username()))
+            .toList();
     }
 
     @Transactional
@@ -55,6 +63,36 @@ public class AuthService {
             user.createdAt(),
             java.time.LocalDateTime.now()
         );
+        return userRepository.save(updatedUser);
+    }
+
+    @Transactional
+    public User updateUser(UUID id, String username, String newPassword) throws Exception {
+        Optional<User> existingUserOpt = userRepository.findById(id);
+        if (existingUserOpt.isEmpty()) {
+            throw new Exception("User not found: " + id);
+        }
+
+        User existingUser = existingUserOpt.get();
+
+        Optional<User> userWithSameUsername = userRepository.findByUsername(username);
+        if (userWithSameUsername.isPresent() && !userWithSameUsername.get().id().equals(id)) {
+            throw new UserAlreadyExistsException("Username already exists: " + username);
+        }
+
+        String passwordHash = existingUser.passwordHash();
+        if (newPassword != null && !newPassword.isBlank()) {
+            passwordHash = passwordHasher.hash(newPassword);
+        }
+
+        User updatedUser = new User(
+            existingUser.id(),
+            username,
+            passwordHash,
+            existingUser.createdAt(),
+            java.time.LocalDateTime.now()
+        );
+
         return userRepository.save(updatedUser);
     }
 }
