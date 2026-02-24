@@ -27,7 +27,17 @@
                 required
               >
             </div>
-            <button type="submit" :disabled="isLoading">Benutzer anlegen</button>
+            <div class="form-row">
+              <label for="new-password-confirm">Passwort wiederholen</label>
+              <input
+                id="new-password-confirm"
+                v-model="newUserPasswordConfirm"
+                type="password"
+                autocomplete="new-password"
+                required
+              >
+            </div>
+            <button type="submit" class="create-user-button" :disabled="isLoading">Benutzer anlegen</button>
           </form>
 
           <div v-if="isLoading" class="loading-text">Lade Benutzer...</div>
@@ -51,7 +61,7 @@
                   <td>{{ formatDate(user.createdAt) }}</td>
                   <td>{{ formatDate(user.updatedAt) }}</td>
                   <td>
-                    <button type="button" @click="startEdit(user)">Bearbeiten</button>
+                    <button type="button" class="edit-button" @click="startEdit(user)">Bearbeiten</button>
                   </td>
                 </tr>
                 <tr v-if="editingUserId === user.id" class="edit-row">
@@ -117,6 +127,7 @@ const newUser = ref<UserPayload>({
   username: '',
   password: ''
 });
+const newUserPasswordConfirm = ref('');
 
 const editUser = ref<UserPayload>({
   username: '',
@@ -144,9 +155,15 @@ const createUser = async () => {
     return;
   }
 
+  if (newUser.value.password !== newUserPasswordConfirm.value) {
+    errorMessage.value = 'Die Passwörter stimmen nicht überein.';
+    return;
+  }
+
   try {
     await api.post('/api/users', newUser.value);
     newUser.value = { username: '', password: '' };
+    newUserPasswordConfirm.value = '';
     await loadUsers();
   } catch (error) {
     console.error('Fehler beim Anlegen des Benutzers', error);
@@ -269,6 +286,18 @@ button {
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
+}
+
+.create-user-button {
+  width: fit-content;
+}
+
+.edit-button {
+  background: #3b82f6;
+}
+
+.edit-button:hover {
+  background: #2563eb;
 }
 
 button:disabled {
