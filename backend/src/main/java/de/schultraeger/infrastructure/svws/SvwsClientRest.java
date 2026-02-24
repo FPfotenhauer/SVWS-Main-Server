@@ -52,6 +52,39 @@ public class SvwsClientRest implements SvwsClient {
     }
 
     @Override
+    public String getServerVersion(String baseUrl) {
+        HttpClient client = buildHttpClient();
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/status/version"))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new SvwsClientException("SVWS version endpoint failed with status " + response.statusCode(), response.statusCode(), null);
+            }
+
+            JsonNode node = objectMapper.readTree(response.body());
+            if (node.isTextual()) {
+                return node.asText();
+            }
+            JsonNode versionNode = node.get("version");
+            if (versionNode != null && versionNode.isTextual()) {
+                return versionNode.asText();
+            }
+
+            throw new SvwsClientException("SVWS version endpoint returned unsupported payload", response.statusCode(), null);
+        } catch (SvwsClientException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new SvwsClientException("SVWS version endpoint failed", -1, ex);
+        }
+    }
+
+    @Override
     public boolean isPrivileged(String baseUrl, String username, String password) {
         HttpClient client = buildHttpClient();
         try {

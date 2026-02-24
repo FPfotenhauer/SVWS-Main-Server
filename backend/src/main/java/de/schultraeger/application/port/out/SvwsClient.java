@@ -12,6 +12,10 @@ import java.util.List;
  * Port for SVWS privileged API access.
  */
 public interface SvwsClient {
+    default String getServerVersion(String baseUrl) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
     boolean isPrivileged(String baseUrl, String username, String password);
 
     SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password);

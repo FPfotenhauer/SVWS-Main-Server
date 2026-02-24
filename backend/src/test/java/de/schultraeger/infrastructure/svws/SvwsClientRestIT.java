@@ -9,6 +9,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SvwsClientRestIT {
     @Test
+    void shouldReadServerVersionFromStatusEndpoint() {
+        String baseUrl = System.getenv("SVWS_TEST_URL");
+        Assumptions.assumeTrue(baseUrl != null && !baseUrl.isBlank(), "SVWS_TEST_URL not set");
+
+        SvwsClientRest client = new SvwsClientRest(true, true);
+        String version = client.getServerVersion(baseUrl);
+
+        assertNotNull(version);
+        assertTrue(!version.isBlank(), "Expected non-empty server version");
+    }
+
+    @Test
     void shouldReachLocalSvwsInstance() {
         String baseUrl = System.getenv("SVWS_TEST_URL");
         String username = System.getenv("SVWS_TEST_USER");

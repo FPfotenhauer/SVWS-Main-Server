@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
 import { useSchulenStore } from "../stores/schulen";
 import type { SvwsServer, SvwsServerRequest } from "../types/svwsServer";
+import api from "../services/api";
 import SchoolCreationModal from "./SchoolCreationModal.vue";
 import SchoolInfoModal from "./SchoolInfoModal.vue";
 import MessageModal from "./MessageModal.vue";
@@ -24,6 +25,7 @@ const showMessageModal = ref(false);
 const messageModalTitle = ref('');
 const messageModalContent = ref('');
 const editingServerId = ref<string | null>(null);
+const serverVersions = ref<Record<string, string>>({});
 
 const editForm = ref({
   name: "",
@@ -364,6 +366,42 @@ const splitBaseUrl = (baseUrl: string) => {
   return { url: match[1], port: match[2] };
 };
 
+const parseVersionPayload = (payload: unknown): string => {
+  if (typeof payload === "string" && payload.trim().length > 0) {
+    return payload.trim();
+  }
+
+  if (payload && typeof payload === "object") {
+    const data = payload as Record<string, unknown>;
+    const potentialKeys = ["version", "serverVersion", "buildVersion"];
+    for (const key of potentialKeys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  }
+
+  return "Unbekannt";
+};
+
+const fetchServerVersion = async (server: SvwsServer) => {
+  serverVersions.value[server.id] = "Lädt...";
+
+  try {
+    const response = await api.get<unknown>(`/api/svws-servers/${server.id}/version`);
+    const payload = response.data;
+
+    serverVersions.value[server.id] = parseVersionPayload(payload);
+  } catch (error) {
+    serverVersions.value[server.id] = "Nicht verfügbar";
+  }
+};
+
+const refreshServerVersions = async () => {
+  await Promise.all(store.servers.map(server => fetchServerVersion(server)));
+};
+
 const startEditServer = (server: SvwsServer) => {
   const { url, port } = splitBaseUrl(server.baseUrl);
   editingServerId.value = server.id;
@@ -400,7 +438,8 @@ const saveServerEdit = async (id: string) => {
       password: editForm.value.password
     };
 
-    await store.updateServer(id, serverRequest);
+    const updatedServer = await store.updateServer(id, serverRequest);
+    await fetchServerVersion(updatedServer);
     cancelEditServer();
   } catch (err) {
     // Error is already in store.error
@@ -421,6 +460,10 @@ const createServer = async () => {
     
     // Test connection after creating
     await store.testConnection(server.id);
+    const createdServer = store.servers.find(s => s.id === server.id);
+    if (createdServer) {
+      await fetchServerVersion(createdServer);
+    }
     
     form.value = {
       name: "",
@@ -448,6 +491,10 @@ const viewSchools = async (serverId: string) => {
 const testConnection = async (serverId: string) => {
   try {
     await store.testConnection(serverId);
+    const server = store.servers.find(s => s.id === serverId);
+    if (server) {
+      await fetchServerVersion(server);
+    }
   } catch (err) {
     console.error("Error testing connection:", err);
   }
@@ -462,11 +509,13 @@ const refreshAllConnections = async () => {
 const deleteServer = async (id: string) => {
   if (confirm("Are you sure you want to delete this SVWS server?")) {
     await store.deleteServer(id);
+    delete serverVersions.value[id];
   }
 };
 
-onMounted(() => {
-  store.loadServers();
+onMounted(async () => {
+  await store.loadServers();
+  await refreshServerVersions();
   schulenStore.load();
 });
 </script>
@@ -537,6 +586,7 @@ onMounted(() => {
                 {{ sortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
+            <th>Version</th>
             <th>Benutzername</th>
             <th>Status</th>
             <th>Aktionen</th>
@@ -559,6 +609,7 @@ onMounted(() => {
               </template>
               <span v-else>{{ server.baseUrl }}</span>
             </td>
+            <td>{{ serverVersions[server.id] || '—' }}</td>
             <td>
               <template v-if="editingServerId === server.id">
                 <input v-model="editForm.username" type="text" placeholder="Benutzername" />
@@ -641,7 +692,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="!store.servers.length">
-            <td colspan="5">Keine SVWS Server vorhanden.</td>
+            <td colspan="6">Keine SVWS Server vorhanden.</td>
           </tr>
         </tbody>
       </table>

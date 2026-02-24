@@ -149,6 +149,24 @@ public class SvwsServerResource {
         }
     }
 
+    @GET
+    @Path("/{id}/version")
+    public Response getVersion(@PathParam("id") UUID id) {
+        try {
+            SvwsServer server = service.findById(id)
+                .orElseThrow(() -> new NotFoundException("SVWS server not found"));
+
+            String version = svwsClient.getServerVersion(server.baseUrl());
+            return Response.ok(version).build();
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(new ErrorResponse(e.getMessage()))
+                .build();
+        }
+    }
+
     private static SvwsServerResponse toResponse(SvwsServer server) {
         return new SvwsServerResponse(
             server.id(),
