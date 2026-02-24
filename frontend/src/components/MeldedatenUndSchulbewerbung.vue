@@ -8,7 +8,7 @@
       </p>
       <a
         class="action"
-        href="https://www.schulbewerbung.de"
+        href="https://kommunen.schulbewerbung.de/startseite"
         target="_blank"
         rel="noopener noreferrer"
       >
