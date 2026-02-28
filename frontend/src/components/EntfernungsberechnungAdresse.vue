@@ -104,13 +104,24 @@
             </div>
           </div>
         </div>
+
+        <div v-if="hasRouteOnMap" class="map-section">
+          <h4>Route auf Karte (OSM)</h4>
+          <div ref="mapContainer" class="route-map"></div>
+        </div>
+
+        <div v-else-if="!distanceResult.error" class="map-hint">
+          Für diese Berechnung wurden keine Routendaten für die Kartenanzeige geliefert.
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import type { SchuleStammdatenResponse } from '../types/schule';
 import type { SchuelerAdresse } from '../types/schueler';
 import type { DistanceResult } from '../types/schueler';
@@ -132,6 +143,12 @@ const emit = defineEmits<{
 
 const isCalculating = ref(false);
 const distanceResult = ref<DistanceResult | null>(null);
+const mapContainer = ref<HTMLDivElement | null>(null);
+const mapInstance = shallowRef<L.Map | null>(null);
+const routeLayer = shallowRef<L.Polyline | null>(null);
+const markerLayer = shallowRef<L.LayerGroup | null>(null);
+
+const hasRouteOnMap = computed(() => Boolean(distanceResult.value?.polyline));
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -151,6 +168,122 @@ const formatTime = (minutes?: number | null) => {
   }
   return `${mins} min`;
 };
+
+const decodePolyline = (encoded: string): L.LatLngTuple[] => {
+  const points: L.LatLngTuple[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < encoded.length) {
+    let shift = 0;
+    let result = 0;
+    let byte: number;
+
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    const latitudeChange = (result & 1) ? ~(result >> 1) : (result >> 1);
+    lat += latitudeChange;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    const longitudeChange = (result & 1) ? ~(result >> 1) : (result >> 1);
+    lng += longitudeChange;
+
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+
+  return points;
+};
+
+const ensureMap = () => {
+  if (mapInstance.value || !mapContainer.value) {
+    return;
+  }
+
+  mapInstance.value = L.map(mapContainer.value, {
+    zoomControl: true,
+    scrollWheelZoom: true
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap-Mitwirkende',
+    maxZoom: 19
+  }).addTo(mapInstance.value);
+};
+
+const clearRouteLayers = () => {
+  if (routeLayer.value) {
+    routeLayer.value.remove();
+    routeLayer.value = null;
+  }
+  if (markerLayer.value) {
+    markerLayer.value.remove();
+    markerLayer.value = null;
+  }
+};
+
+const renderRouteOnMap = async (polyline?: string | null) => {
+  if (!polyline) {
+    clearRouteLayers();
+    return;
+  }
+
+  await nextTick();
+  ensureMap();
+
+  if (!mapInstance.value) {
+    return;
+  }
+
+  const coordinates = decodePolyline(polyline);
+  if (coordinates.length < 2) {
+    clearRouteLayers();
+    return;
+  }
+
+  clearRouteLayers();
+
+  routeLayer.value = L.polyline(coordinates, {
+    color: '#3b82f6',
+    weight: 5,
+    opacity: 0.9
+  }).addTo(mapInstance.value);
+
+  const start = coordinates[0];
+  const end = coordinates[coordinates.length - 1];
+  markerLayer.value = L.layerGroup([
+    L.circleMarker(start, { radius: 6, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }),
+    L.circleMarker(end, { radius: 6, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 })
+  ]).addTo(mapInstance.value);
+
+  mapInstance.value.fitBounds(routeLayer.value.getBounds(), {
+    padding: [20, 20]
+  });
+};
+
+watch(
+  () => distanceResult.value?.polyline,
+  (polyline) => {
+    renderRouteOnMap(polyline);
+  }
+);
+
+onBeforeUnmount(() => {
+  mapInstance.value?.remove();
+  mapInstance.value = null;
+});
 
 const calculateDistance = async () => {
   if (!props.schoolId || !props.adresse?.id) {
@@ -364,6 +497,29 @@ h3 {
 
 .result-item .value.time {
   color: #f59e0b;
+}
+
+.map-section {
+  margin-top: 1rem;
+}
+
+h4 {
+  margin: 0 0 0.5rem 0;
+  color: #f8fafc;
+}
+
+.route-map {
+  width: 100%;
+  height: 320px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.map-hint {
+  margin-top: 1rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 640px) {

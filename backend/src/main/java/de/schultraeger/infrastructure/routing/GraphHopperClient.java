@@ -250,7 +250,7 @@ public class GraphHopperClient {
             // Build routing request for OSRM
             // OSRM format: /route/v1/{profile}/{lon},{lat};{lon},{lat}
             String url = String.format(
-                    "%s/route/v1/%s/%f,%f;%f,%f?overview=false",
+                    "%s/route/v1/%s/%f,%f;%f,%f?overview=full&geometries=polyline",
                     graphHopperUrl,
                     profile,
                     startLon, startLat,  // OSRM uses lon,lat order
@@ -292,6 +292,10 @@ public class GraphHopperClient {
             }
             
             JsonNode route = responseBody.get("routes").get(0);
+
+            if ("car".equals(modeKey) && route.has("geometry") && !route.get("geometry").isNull()) {
+                result.setPolyline(route.get("geometry").asText());
+            }
             
             // OSRM returns distance in meters and duration in seconds
             Long distanceMeters = route.get("distance").asLong();
