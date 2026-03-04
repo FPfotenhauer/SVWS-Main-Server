@@ -3,6 +3,7 @@
 
 # Log file
 *.log
+logs/
 
 # BlueJ files
 *.ctxt
@@ -44,3 +45,6 @@ dependency-reduced-pom.xml
 node_modules/
 dist/
 .DS_Store
+
+# osrm_data
+docker/osrm_data/

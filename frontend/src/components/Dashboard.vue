@@ -15,7 +15,7 @@
       </div>
 
       <!-- Schulstatistiken -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToSchulstatistiken">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -28,7 +28,7 @@
       </div>
 
       <!-- IDM Verwaltung -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToIdmVerwaltung">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Benutzer verwalten -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToBenutzerVerwaltung">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -71,8 +71,24 @@
         <p>Zugriff auf den Schulkatalog von Nordrhein-Westfalen</p>
       </div>
 
+      <!-- Entfernungsberechnung -->
+      <div class="dashboard-tile" @click="navigateToEntfernungsberechnung">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M3 12h18"></path>
+            <path d="M3 18h18"></path>
+            <circle cx="6" cy="6" r="2"></circle>
+            <circle cx="18" cy="12" r="2"></circle>
+            <circle cx="10" cy="18" r="2"></circle>
+          </svg>
+        </div>
+        <h3>Entfernungsberechnung</h3>
+        <p>Berechnung und Auswertung von Entfernungen</p>
+      </div>
+
       <!-- Support -->
-      <div class="dashboard-tile">
+      <div class="dashboard-tile" @click="navigateToSupport">
         <div class="tile-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -84,6 +100,32 @@
         <h3>Support</h3>
         <p>Kontaktieren Sie unser Support-Team</p>
       </div>
+
+      <!-- Meldedaten und Schulbewerbung.de -->
+      <div class="dashboard-tile" @click="navigateToMeldedatenUndSchulbewerbung">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l7 4v12l-7 4-7-4V6l7-4z"></path>
+            <path d="M12 22V12"></path>
+            <path d="M19 6l-7 6-7-6"></path>
+          </svg>
+        </div>
+        <h3>Meldedaten und Schulbewerbung.de</h3>
+        <p>Verwaltung Online-Anmeldung</p>
+      </div>
+
+      <!-- Webnotenmanager -->
+      <div class="dashboard-tile" @click="navigateToWebnotenmanager">
+        <div class="tile-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path>
+            <path d="M8 10h8"></path>
+            <path d="M8 14h5"></path>
+          </svg>
+        </div>
+        <h3>Webnotenmanager</h3>
+        <p>Öffnen Sie den Bereich für den Webnotenmanager</p>
+      </div>
     </div>
   </div>
 </template>
@@ -92,7 +134,14 @@
 const emit = defineEmits<{
   navigateToServers: [];
   navigateToSchulkatalog: [];
-}>();
+  navigateToSchulstatistiken: [];
+  navigateToIdmVerwaltung: [];
+  navigateToBenutzerVerwaltung: [];
+  navigateToEntfernungsberechnung: [];
+  navigateToSupport: [];
+  navigateToMeldedatenUndSchulbewerbung: [];
+  navigateToWebnotenmanager: [];
+}>()
 
 const navigateToServerManagement = () => {
   emit('navigateToServers');
@@ -100,6 +149,34 @@ const navigateToServerManagement = () => {
 
 const navigateToSchulkatalog = () => {
   emit('navigateToSchulkatalog');
+};
+
+const navigateToSchulstatistiken = () => {
+  emit('navigateToSchulstatistiken');
+};
+
+const navigateToIdmVerwaltung = () => {
+  emit('navigateToIdmVerwaltung');
+};
+
+const navigateToBenutzerVerwaltung = () => {
+  emit('navigateToBenutzerVerwaltung');
+};
+
+const navigateToEntfernungsberechnung = () => {
+  emit('navigateToEntfernungsberechnung');
+};
+
+const navigateToSupport = () => {
+  emit('navigateToSupport');
+};
+
+const navigateToMeldedatenUndSchulbewerbung = () => {
+  emit('navigateToMeldedatenUndSchulbewerbung');
+};
+
+const navigateToWebnotenmanager = () => {
+  emit('navigateToWebnotenmanager');
 };
 </script>
 

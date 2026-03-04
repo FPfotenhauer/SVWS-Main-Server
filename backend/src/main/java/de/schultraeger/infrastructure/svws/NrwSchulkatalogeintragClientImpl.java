@@ -85,6 +85,7 @@ public class NrwSchulkatalogeintragClientImpl implements NrwSchulkatalogeintragC
                     
                     Map<String, Object> school = new HashMap<>();
                     school.put("schulnummer", schulnummer);
+                    school.put("oeart", toStringOrNull(org.get("oeart")));
                     school.put("amtsbez1", org.getOrDefault("amtsbez1", null));
                     school.put("amtsbez2", org.getOrDefault("amtsbez2", null));
                     school.put("amtsbez3", org.getOrDefault("amtsbez3", null));

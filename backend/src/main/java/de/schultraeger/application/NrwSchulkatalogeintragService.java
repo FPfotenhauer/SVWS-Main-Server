@@ -113,6 +113,7 @@ public class NrwSchulkatalogeintragService {
                 NrwSchulkatalogeintrag entry = new NrwSchulkatalogeintrag(
                         UUID.randomUUID(),
                         getStringValue(schoolData, "schulnummer"),
+                    getStringValue(schoolData, "oeart"),
                     getStringValue(schoolData, "amtsbez1"),
                     getStringValue(schoolData, "amtsbez2"),
                     getStringValue(schoolData, "amtsbez3"),

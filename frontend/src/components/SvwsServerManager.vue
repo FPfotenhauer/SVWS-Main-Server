@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useSvwsServersStore } from "../stores/svwsServers";
-import type { SvwsServerRequest } from "../types/svwsServer";
+import { useSchulenStore } from "../stores/schulen";
+import type { SvwsServer, SvwsServerRequest } from "../types/svwsServer";
+import api from "../services/api";
 import SchoolCreationModal from "./SchoolCreationModal.vue";
 import SchoolInfoModal from "./SchoolInfoModal.vue";
+import MessageModal from "./MessageModal.vue";
 
 const store = useSvwsServersStore();
+const schulenStore = useSchulenStore();
 const showForm = ref(false);
 const showSchoolCreationModal = ref(false);
 const showSchoolInfoModal = ref(false);
@@ -17,6 +21,19 @@ const schoolSortDirection = ref<'asc' | 'desc'>('asc');
 const schoolSearchQuery = ref('');
 const serverSearchQuery = ref('');
 const selectedSchools = ref<Set<string>>(new Set());
+const showMessageModal = ref(false);
+const messageModalTitle = ref('');
+const messageModalContent = ref('');
+const editingServerId = ref<string | null>(null);
+const serverVersions = ref<Record<string, string>>({});
+
+const editForm = ref({
+  name: "",
+  url: "",
+  port: "",
+  username: "",
+  password: ""
+});
 
 const form = ref({
   name: "",
@@ -135,24 +152,146 @@ const toggleAllSchools = () => {
   }
 };
 
-const createBackup = () => {
+const createBackup = async () => {
   if (selectedSchools.value.size === 0) {
-    alert('Bitte wählen Sie mindestens eine Schule aus');
+    messageModalTitle.value = 'Keine Auswahl';
+    messageModalContent.value = 'Bitte wählen Sie mindestens eine Schule aus';
+    showMessageModal.value = true;
     return;
   }
+  
   const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
-  console.log('Backup erstellen für Schulen:', selectedSchoolData);
-  // TODO: Backend call
+  
+  if (selectedSchoolData.length === 0) {
+    messageModalTitle.value = 'Fehler';
+    messageModalContent.value = 'Keine Schulen für Backup gefunden';
+    showMessageModal.value = true;
+    return;
+  }
+
+  // Load fresh schulen data to get current IDs
+  await schulenStore.load();
+  
+  let successCount = 0;
+  let errorCount = 0;
+  const errors: string[] = [];
+  
+  for (const school of selectedSchoolData) {
+    try {
+      // Find the school in our database by matching serverId and schema
+      const managedSchool = schulenStore.items.find(
+        s => s.svwsSchema === school.schema && 
+             s.svwsServerId === store.selectedServer?.id
+      );
+      
+      if (managedSchool?.id) {
+        console.log(`Creating backup for school: ${school.name} (schema: ${school.schema}, id: ${managedSchool.id})`);
+        
+        // Create download link and trigger download
+        const url = `/api/schulen/${managedSchool.id}/backup`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `backup_${school.schema}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.sqlite`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        successCount++;
+        
+        // Small delay between downloads to avoid overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        console.warn(`School not found in database: ${school.schema}`);
+        errors.push(`${school.name || school.schema}: Nicht in Datenbank gefunden`);
+        errorCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to create backup for school ${school.schema}:`, error);
+      errors.push(`${school.name || school.schema}: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+      errorCount++;
+    }
+  }
+  
+  // Show result message
+  if (errorCount === 0) {
+    messageModalTitle.value = 'Backup gestartet';
+    messageModalContent.value = `${successCount} Backup(s) werden erstellt und heruntergeladen.\nDas kann einige Minuten dauern.`;
+  } else {
+    messageModalTitle.value = 'Backup abgeschlossen';
+    messageModalContent.value = `${successCount} Backup(s) werden erstellt.\n\n${errorCount} Fehler:\n${errors.join('\n')}`;
+  }
+  showMessageModal.value = true;
 };
 
-const deleteSchools = () => {
+const deleteSchools = async () => {
   if (selectedSchools.value.size === 0) {
     alert('Bitte wählen Sie mindestens eine Schule aus');
     return;
   }
+  
   const selectedSchoolData = store.schools.filter(school => school._uid && selectedSchools.value.has(school._uid));
-  console.log('Schulen löschen:', selectedSchoolData);
-  // TODO: Backend call
+  
+  if (selectedSchoolData.length === 0) {
+    alert('Keine Schulen zum Löschen gefunden');
+    return;
+  }
+
+  const schoolNames = selectedSchoolData.map(s => s.name || s.schema).join(', ');
+  const confirmMessage = `WARNUNG: Diese Aktion löscht die ausgewählten Schulen PERMANENT vom SVWS-Server und aus der Datenbank!\n\n` +
+    `Schulen: ${schoolNames}\n\n` +
+    `Alle Daten dieser Schulen werden unwiederbringlich gelöscht.\n\n` +
+    `Möchten Sie fortfahren?`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  // Load fresh schulen data to get current IDs
+  await schulenStore.load();
+  
+  let deletedCount = 0;
+  let errorCount = 0;
+  
+  for (const school of selectedSchoolData) {
+    try {
+      // Find the school in our database by matching serverId and schema
+      const managedSchool = schulenStore.items.find(
+        s => s.svwsSchema === school.schema && 
+             s.svwsServerId === store.selectedServer?.id
+      );
+      
+      if (managedSchool?.id) {
+        console.log(`Deleting school: ${school.name} (schema: ${school.schema}, id: ${managedSchool.id})`);
+        await schulenStore.delete(managedSchool.id);
+        deletedCount++;
+      } else {
+        console.warn(`School not found in database: ${school.schema}`);
+        errorCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to delete school ${school.schema}:`, error);
+      errorCount++;
+    }
+  }
+  
+  // Clear selection
+  selectedSchools.value.clear();
+  
+  // Small delay to allow SVWS server to process schema destruction
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Reload both the SVWS server school list and the managed schools from database
+  await schulenStore.load();
+  if (store.selectedServer) {
+    await store.loadSchoolsFromServer(store.selectedServer.id);
+  }
+  
+  // Show result message
+  if (errorCount === 0) {
+    alert(`${deletedCount} Schule(n) erfolgreich gelöscht`);
+  } else {
+    alert(`${deletedCount} Schule(n) gelöscht, ${errorCount} Fehler`);
+  }
 };
 
 const duplicateSchools = () => {
@@ -199,6 +338,10 @@ const showSchoolInfo = (school: any) => {
   showSchoolInfoModal.value = true;
 };
 
+const navigateToVerwalteteSchulen = () => {
+  window.dispatchEvent(new Event('navigate-to-verwaltete-schulen'));
+};
+
 const canCreate = computed(() =>
   form.value.name &&
   form.value.url &&
@@ -206,6 +349,102 @@ const canCreate = computed(() =>
   form.value.username &&
   form.value.password
 );
+
+const canSaveEdit = computed(() =>
+  !!editingServerId.value &&
+  !!editForm.value.name &&
+  !!editForm.value.url &&
+  !!editForm.value.port &&
+  !!editForm.value.username
+);
+
+const splitBaseUrl = (baseUrl: string) => {
+  const match = baseUrl.trim().match(/^(.*):(\d+)$/);
+  if (!match) {
+    return { url: baseUrl, port: "" };
+  }
+  return { url: match[1], port: match[2] };
+};
+
+const parseVersionPayload = (payload: unknown): string => {
+  if (typeof payload === "string" && payload.trim().length > 0) {
+    return payload.trim();
+  }
+
+  if (payload && typeof payload === "object") {
+    const data = payload as Record<string, unknown>;
+    const potentialKeys = ["version", "serverVersion", "buildVersion"];
+    for (const key of potentialKeys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  }
+
+  return "Unbekannt";
+};
+
+const fetchServerVersion = async (server: SvwsServer) => {
+  serverVersions.value[server.id] = "Lädt...";
+
+  try {
+    const response = await api.get<unknown>(`/api/svws-servers/${server.id}/version`);
+    const payload = response.data;
+
+    serverVersions.value[server.id] = parseVersionPayload(payload);
+  } catch (error) {
+    serverVersions.value[server.id] = "Nicht verfügbar";
+  }
+};
+
+const refreshServerVersions = async () => {
+  await Promise.all(store.servers.map(server => fetchServerVersion(server)));
+};
+
+const startEditServer = (server: SvwsServer) => {
+  const { url, port } = splitBaseUrl(server.baseUrl);
+  editingServerId.value = server.id;
+  editForm.value = {
+    name: server.name,
+    url,
+    port,
+    username: server.username,
+    password: ""
+  };
+};
+
+const cancelEditServer = () => {
+  editingServerId.value = null;
+  editForm.value = {
+    name: "",
+    url: "",
+    port: "",
+    username: "",
+    password: ""
+  };
+};
+
+const saveServerEdit = async (id: string) => {
+  if (editingServerId.value !== id || !canSaveEdit.value) {
+    return;
+  }
+
+  try {
+    const serverRequest: SvwsServerRequest = {
+      name: editForm.value.name,
+      baseUrl: `${editForm.value.url}:${editForm.value.port}`,
+      username: editForm.value.username,
+      password: editForm.value.password
+    };
+
+    const updatedServer = await store.updateServer(id, serverRequest);
+    await fetchServerVersion(updatedServer);
+    cancelEditServer();
+  } catch (err) {
+    // Error is already in store.error
+  }
+};
 
 const createServer = async () => {
   try {
@@ -221,6 +460,10 @@ const createServer = async () => {
     
     // Test connection after creating
     await store.testConnection(server.id);
+    const createdServer = store.servers.find(s => s.id === server.id);
+    if (createdServer) {
+      await fetchServerVersion(createdServer);
+    }
     
     form.value = {
       name: "",
@@ -248,6 +491,10 @@ const viewSchools = async (serverId: string) => {
 const testConnection = async (serverId: string) => {
   try {
     await store.testConnection(serverId);
+    const server = store.servers.find(s => s.id === serverId);
+    if (server) {
+      await fetchServerVersion(server);
+    }
   } catch (err) {
     console.error("Error testing connection:", err);
   }
@@ -262,11 +509,14 @@ const refreshAllConnections = async () => {
 const deleteServer = async (id: string) => {
   if (confirm("Are you sure you want to delete this SVWS server?")) {
     await store.deleteServer(id);
+    delete serverVersions.value[id];
   }
 };
 
-onMounted(() => {
-  store.loadServers();
+onMounted(async () => {
+  await store.loadServers();
+  await refreshServerVersions();
+  schulenStore.load();
 });
 </script>
 
@@ -287,6 +537,9 @@ onMounted(() => {
           </button>
           <button type="button" @click="showForm = !showForm">
             {{ showForm ? "Abbrechen" : "+ Server hinzufügen" }}
+          </button>
+          <button type="button" @click="navigateToVerwalteteSchulen" class="secondary">
+            Schulen anzeigen
           </button>
         </div>
       </div>
@@ -333,6 +586,7 @@ onMounted(() => {
                 {{ sortDirection === 'asc' ? '↑' : '↓' }}
               </span>
             </th>
+            <th>Version</th>
             <th>Benutzername</th>
             <th>Status</th>
             <th>Aktionen</th>
@@ -341,10 +595,27 @@ onMounted(() => {
         <tbody>
           <tr v-for="server in filteredAndSortedServers" :key="server.id">
             <td class="server-name">
-              <strong>{{ server.name }}</strong>
+              <template v-if="editingServerId === server.id">
+                <input v-model="editForm.name" type="text" placeholder="Name" />
+              </template>
+              <strong v-else>{{ server.name }}</strong>
             </td>
-            <td>{{ server.baseUrl }}</td>
-            <td>{{ server.username }}</td>
+            <td>
+              <template v-if="editingServerId === server.id">
+                <div class="edit-baseurl-fields">
+                  <input v-model="editForm.url" type="text" placeholder="URL" />
+                  <input v-model="editForm.port" type="text" placeholder="Port" class="edit-port" />
+                </div>
+              </template>
+              <span v-else>{{ server.baseUrl }}</span>
+            </td>
+            <td>{{ serverVersions[server.id] || '—' }}</td>
+            <td>
+              <template v-if="editingServerId === server.id">
+                <input v-model="editForm.username" type="text" placeholder="Benutzername" />
+              </template>
+              <span v-else>{{ server.username }}</span>
+            </td>
             <td>
               <div class="status" :class="statusClass(server.status)">
                 {{ server.status }}
@@ -352,10 +623,40 @@ onMounted(() => {
             </td>
             <td>
               <div class="action-buttons">
+                <template v-if="editingServerId === server.id">
+                  <button
+                    class="icon-button secondary"
+                    type="button"
+                    :disabled="!canSaveEdit"
+                    @click="saveServerEdit(server.id)"
+                    title="Änderungen speichern">
+                    ✔
+                  </button>
+                  <button
+                    class="icon-button secondary"
+                    type="button"
+                    @click="cancelEditServer"
+                    title="Bearbeiten abbrechen">
+                    ✕
+                  </button>
+                </template>
+                <template v-else>
+                  <button
+                    class="icon-button secondary"
+                    type="button"
+                    @click="startEditServer(server)"
+                    title="Bearbeiten">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+                    </svg>
+                  </button>
+                </template>
                 <button 
                   class="icon-button secondary" 
                   type="button" 
                   @click="testConnection(server.id)"
+                  :disabled="editingServerId === server.id"
                   title="Verbindung testen">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -366,6 +667,7 @@ onMounted(() => {
                   class="icon-button secondary" 
                   type="button" 
                   @click="viewSchools(server.id)"
+                  :disabled="editingServerId === server.id"
                   title="Schulen anzeigen">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -376,6 +678,7 @@ onMounted(() => {
                   class="icon-button danger" 
                   type="button" 
                   @click="deleteServer(server.id)"
+                  :disabled="editingServerId === server.id"
                   title="Löschen">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"></path>
@@ -389,7 +692,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="!store.servers.length">
-            <td colspan="5">Keine SVWS Server vorhanden.</td>
+            <td colspan="6">Keine SVWS Server vorhanden.</td>
           </tr>
         </tbody>
       </table>
@@ -531,6 +834,7 @@ onMounted(() => {
       </table>
       </div>
     </section>
+
   </div>
 
   <!-- School Creation Modal -->
@@ -546,7 +850,16 @@ onMounted(() => {
   <SchoolInfoModal
     :visible="showSchoolInfoModal"
     :schule="selectedSchoolInfo"
+    :serverName="store.selectedServer?.name"
     @close="showSchoolInfoModal = false"
+  />
+
+  <!-- Message Modal -->
+  <MessageModal
+    :visible="showMessageModal"
+    :title="messageModalTitle"
+    :message="messageModalContent"
+    @close="showMessageModal = false"
   />
 </template>
 
@@ -698,6 +1011,16 @@ button.danger:active,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.edit-baseurl-fields {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 0.5rem;
+}
+
+.edit-port {
+  min-width: 0;
 }
 
 .school-header-actions {

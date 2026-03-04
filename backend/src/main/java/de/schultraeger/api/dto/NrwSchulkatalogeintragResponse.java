@@ -6,6 +6,7 @@ package de.schultraeger.api.dto;
 public record NrwSchulkatalogeintragResponse(
         String id,
         String schulnummer,
+        String oeart,
         String amtsbez1,
         String amtsbez2,
         String amtsbez3,

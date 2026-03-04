@@ -1,24 +1,30 @@
 package de.schultraeger.application;
 
-import de.schultraeger.application.dto.SchuleCreateData;
-import de.schultraeger.application.dto.SchuleUpdateData;
+import de.schultraeger.application.dto.SchuleStammdaten;
+import de.schultraeger.application.dto.SchuleStammdatenResult;
+import de.schultraeger.application.dto.SchuleStatistikenGesamt;
+import de.schultraeger.application.dto.SchuleStatistikenRaw;
+import de.schultraeger.application.dto.OrtKatalogEintrag;
+import de.schultraeger.application.dto.SchuelerAuswahl;
+import de.schultraeger.application.dto.SchuelerStammdaten;
 import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.application.port.out.PasswordCipher;
-import de.schultraeger.application.port.out.SchuleRepository;
 import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
-import de.schultraeger.application.security.TenantContext;
+import de.schultraeger.application.port.out.SchuleRepository;
+import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.Schule;
-import de.schultraeger.domain.SchuleStatus;
-import de.schultraeger.domain.SyncStatus;
+import de.schultraeger.domain.SvwsServer;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 /**
@@ -29,331 +35,580 @@ public class SchuleService {
     private static final Logger LOG = Logger.getLogger(SchuleService.class);
     private final SchuleRepository repository;
     private final SvwsClient svwsClient;
-    private final TenantContext tenantContext;
     private final PasswordCipher passwordCipher;
+    private final SvwsServerRepository serverRepository;
 
     public SchuleService(SchuleRepository repository,
                          SvwsClient svwsClient,
-                         TenantContext tenantContext,
-                         PasswordCipher passwordCipher) {
+                         PasswordCipher passwordCipher,
+                         SvwsServerRepository serverRepository) {
         this.repository = repository;
         this.svwsClient = svwsClient;
-        this.tenantContext = tenantContext;
         this.passwordCipher = passwordCipher;
+        this.serverRepository = serverRepository;
     }
 
     public List<Schule> list() {
-        return repository.findAll(tenantContext.getTenantId());
-    }
-
-    public SvwsSchuleInfo getSvwsSchoolInfo(UUID schuleId) throws SchuleNotFoundException {
-        Schule schule = repository.findById(tenantContext.getTenantId(), schuleId)
-                .orElseThrow(() -> new SchuleNotFoundException(schuleId));
-
-        String password = passwordCipher.decrypt(schule.svwsPasswordEncrypted());
-
-        long startInfo = System.nanoTime();
-        SvwsSchuleInfo info = svwsClient.getSchuleInfo(
-                schule.svwsUrl(),
-                schule.svwsSchema(),
-                schule.svwsUsername(),
-                password
-        );
-        long durationInfo = (System.nanoTime() - startInfo) / 1_000_000;
-        LOG.infov("svws_getschuleinfo duration_ms={0} schule_id={1} svws_url={2} schema={3}",
-            durationInfo, schule.id(), schule.svwsUrl(), schule.svwsSchema());
-
-        return info;
+        return repository.findAllSchools();
     }
 
     @Transactional
-    public Schule create(SchuleCreateData data) {
-        UUID id = UUID.randomUUID();
+    public Schule create(de.schultraeger.api.dto.SchuleRequest request) {
+        // Encrypt the password
+        String encryptedPassword = null;
+        if (request.svwsPassword() != null && !request.svwsPassword().isEmpty()) {
+            encryptedPassword = passwordCipher.encrypt(request.svwsPassword());
+        }
+        
+        // Create new school
         Instant now = Instant.now();
-        String encrypted = passwordCipher.encrypt(data.svwsPassword());
-
         Schule schule = new Schule(
-                id,
-                data.name(),
-                null,                           // schulnummer
-                data.svwsUrl(),
-                data.svwsSchema(),
-                data.svwsUsername(),
-                encrypted,
-                SchuleStatus.UNVERIFIED,
-                null,                           // lastSyncAt
-                null,                           // lastSyncStatus
-                null,                           // lastError
-                now,
-                now,
-                // Address
-                null, null, null, null, null,   // strasse, hausnummer, hausnummerZusatz, plz, ort
-                // Contact
-                null, null, null, null,         // telefon, fax, email, homepage
-                // Administrative
-                null, null, null,               // schulleiter, schulleiterTelefon, schulleiterEmail
-                // Region
-                null, null,                     // kreis, schulamt
-                // Metadata
-                null, null                      // schulnummer2, schulstatus
+            UUID.randomUUID(),
+            UUID.fromString(request.svwsServerId()),
+            request.svwsSchema(),
+            request.svwsUsername(),
+            encryptedPassword,
+            now,
+            now
         );
-
-        return repository.save(tenantContext.getTenantId(), schule);
+        
+        // Save to repository
+        repository.saveSchool(schule);
+        
+        return schule;
     }
 
-    @Transactional
-    public Schule update(UUID id, SchuleUpdateData data) {
-        Schule existing = getById(id);
-        String encrypted = passwordCipher.encrypt(data.svwsPassword());
-        Instant now = Instant.now();
-
-        Schule updated = new Schule(
-                existing.id(),
-                data.name(),
-                existing.schulnummer(),
-                data.svwsUrl(),
-                data.svwsSchema(),
-                data.svwsUsername(),
-                encrypted,
-                SchuleStatus.UNVERIFIED,
-                null,
-                null,
-                null,
-                existing.createdAt(),
-                now,
-                existing.strasse(),
-                existing.hausnummer(),
-                existing.hausnummerZusatz(),
-                existing.plz(),
-                existing.ort(),
-                existing.telefon(),
-                existing.fax(),
-                existing.email(),
-                existing.homepage(),
-                existing.schulleiter(),
-                existing.schulleiterTelefon(),
-                existing.schulleiterEmail(),
-                existing.kreis(),
-                existing.schulamt(),
-                existing.schulnummer2(),
-                existing.schulstatus()
-        );
-
-        return repository.update(tenantContext.getTenantId(), updated);
-    }
-
-    @Transactional
-    public Schule verify(UUID id) {
-        Schule existing = getById(id);
-        String password = passwordCipher.decrypt(existing.svwsPasswordEncrypted());
-
-        try {
-            long start = System.nanoTime();
-            boolean privileged = svwsClient.isPrivileged(
-                    existing.svwsUrl(),
-                    existing.svwsUsername(),
-                    password
-            );
-            long durationMs = (System.nanoTime() - start) / 1_000_000;
-            LOG.infov("svws_isprivileged duration_ms={0} schule_id={1} svws_url={2}",
-                    durationMs, existing.id(), existing.svwsUrl());
-            SchuleStatus status = privileged ? SchuleStatus.VERIFIED : SchuleStatus.INVALID_CREDENTIALS;
-            String error = privileged ? null : "Invalid credentials";
-            Schule updated = withStatus(existing, status, null, null, error);
-            return repository.update(tenantContext.getTenantId(), updated);
-        } catch (SvwsClientException ex) {
-            SchuleStatus status = mapStatus(ex.getStatusCode());
-            String error = mapError(status);
-            Schule updated = withStatus(existing, status, null, null, error);
-            return repository.update(tenantContext.getTenantId(), updated);
-        } catch (RuntimeException ex) {
-            SchuleStatus status = mapStatus(ex);
-            String error = mapError(status);
-            Schule updated = withStatus(existing, status, null, null, error);
-            return repository.update(tenantContext.getTenantId(), updated);
-        }
-    }
-
-    @Transactional
-    public Schule sync(UUID id) {
-        Schule existing = getById(id);
-        String password = passwordCipher.decrypt(existing.svwsPasswordEncrypted());
-        Instant now = Instant.now();
-
-        try {
-            long startPriv = System.nanoTime();
-            boolean privileged = svwsClient.isPrivileged(
-                    existing.svwsUrl(),
-                    existing.svwsUsername(),
-                    password
-            );
-            long durationPriv = (System.nanoTime() - startPriv) / 1_000_000;
-            LOG.infov("svws_isprivileged duration_ms={0} schule_id={1} svws_url={2}",
-                durationPriv, existing.id(), existing.svwsUrl());
-            if (!privileged) {
-                Schule updated = withStatus(existing, SchuleStatus.INVALID_CREDENTIALS,
-                        now, SyncStatus.INVALID_CREDENTIALS, "Invalid credentials");
-                return repository.update(tenantContext.getTenantId(), updated);
-            }
-
-            long startInfo = System.nanoTime();
-            SvwsSchuleInfo info = svwsClient.getSchuleInfo(
-                    existing.svwsUrl(),
-                    existing.svwsSchema(),
-                    existing.svwsUsername(),
-                    password
-            );
-            long durationInfo = (System.nanoTime() - startInfo) / 1_000_000;
-            LOG.infov("svws_getschuleinfo duration_ms={0} schule_id={1} svws_url={2} schema={3}",
-                durationInfo, existing.id(), existing.svwsUrl(), existing.svwsSchema());
-
-            Schule updated = new Schule(
-                    existing.id(),
-                    info.name() != null ? info.name() : existing.name(),
-                    info.schulnummer(),
-                    existing.svwsUrl(),
-                    existing.svwsSchema(),
-                    existing.svwsUsername(),
-                    existing.svwsPasswordEncrypted(),
-                    SchuleStatus.VERIFIED,
-                    now,
-                    SyncStatus.SUCCESS,
-                    null,
-                    existing.createdAt(),
-                    Instant.now(),
-                    // Address information
-                    info.strasse(),
-                    info.hausnummer(),
-                    info.hausnummerZusatz(),
-                    info.plz(),
-                    info.ort(),
-                    // Contact information
-                    info.telefon(),
-                    info.fax(),
-                    info.email(),
-                    info.homepage(),
-                    // Administrative information
-                    info.schulleiter(),
-                    info.schulleiterTelefon(),
-                    info.schulleiterEmail(),
-                    // Region information
-                    info.kreis(),
-                    info.schulamt(),
-                    // Additional metadata
-                    info.schulnummer2(),
-                    info.schulstatus()
-            );
-
-            return repository.update(tenantContext.getTenantId(), updated);
-        } catch (SvwsClientException ex) {
-            SchuleStatus status = mapStatus(ex.getStatusCode());
-            SyncStatus syncStatus = mapSyncStatus(ex.getStatusCode());
-            String error = mapError(status);
-            Schule updated = withStatus(existing, status, now, syncStatus, error);
-            return repository.update(tenantContext.getTenantId(), updated);
-        } catch (RuntimeException ex) {
-            SchuleStatus status = mapStatus(ex);
-            SyncStatus syncStatus = mapSyncStatus(ex);
-            String error = mapError(status);
-            Schule updated = withStatus(existing, status, now, syncStatus, error);
-            return repository.update(tenantContext.getTenantId(), updated);
-        }
-    }
-
-    private Schule getById(UUID id) {
-        return repository.findById(tenantContext.getTenantId(), id)
+    public Schule getById(UUID id) {
+        return repository.findSchoolById(id)
                 .orElseThrow(() -> new SchuleNotFoundException(id));
     }
 
-    private Schule withStatus(Schule existing,
-                              SchuleStatus status,
-                              Instant lastSyncAt,
-                              SyncStatus lastSyncStatus,
-                              String lastError) {
-        return new Schule(
-                existing.id(),
-                existing.name(),
-                existing.schulnummer(),
-                existing.svwsUrl(),
-                existing.svwsSchema(),
-                existing.svwsUsername(),
-                existing.svwsPasswordEncrypted(),
-                status,
-                lastSyncAt,
-                lastSyncStatus,
-                lastError,
-                existing.createdAt(),
-                Instant.now(),
-                existing.strasse(),
-                existing.hausnummer(),
-                existing.hausnummerZusatz(),
-                existing.plz(),
-                existing.ort(),
-                existing.telefon(),
-                existing.fax(),
-                existing.email(),
-                existing.homepage(),
-                existing.schulleiter(),
-                existing.schulleiterTelefon(),
-                existing.schulleiterEmail(),
-                existing.kreis(),
-                existing.schulamt(),
-                existing.schulnummer2(),
-                existing.schulstatus()
+    @ActivateRequestContext
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public int importSchoolsFromSvwsServer(SvwsServer server) {
+        LOG.infov("import_schools_start server_id={0} base_url={1}", server.id(), server.baseUrl());
+        String password = passwordCipher.decrypt(server.passwordEncrypted());
+        
+        List<SvwsSchuleInfo> schoolInfos;
+        try {
+            schoolInfos = svwsClient.listSchools(server.baseUrl(), server.username(), password);
+            if (schoolInfos == null) {
+                LOG.errorv("import_schools_failed server_id={0} reason=null_list", server.id());
+                return 0;
+            }
+        } catch (Exception e) {
+            LOG.errorv(e, "import_schools_failed server_id={0}", server.id());
+            return 0;
+        }
+
+        int count = 0;
+        for (SvwsSchuleInfo info : schoolInfos) {
+            if (info == null) {
+                continue;
+            }
+            if (saveSchoolIfNew(server, info)) {
+                count++;
+            }
+        }
+        LOG.infov("import_schools_done server_id={0} total={1} newly_imported={2}", server.id(), schoolInfos.size(), count);
+        return count;
+    }
+
+    @Transactional
+    public boolean saveSchoolIfNew(SvwsServer server, SvwsSchuleInfo info) {
+        String schema = normalizeSchema(info.schema());
+        if (schema == null) {
+            LOG.warnv("Skipping school import with missing/blank schema for server_id={0}", server.id());
+            return false;
+        }
+
+        if (repository.findByServerIdAndSchema(server.id(), schema).isPresent()) {
+            return false;
+        }
+
+        Instant now = Instant.now();
+        Schule schule = new Schule(
+                UUID.randomUUID(),
+                server.id(),
+            schema,
+                null,  // svwsUsername - will be set later by user
+                null,  // svwsUserPasswordEncrypted - will be set later by user
+                now,
+                now
+        );
+
+        repository.saveSchool(schule);
+        return true;
+    }
+
+    private String normalizeSchema(String schema) {
+        if (schema == null) {
+            return null;
+        }
+        String normalized = schema.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    @Transactional
+    public Schule update(UUID id, de.schultraeger.api.dto.SchuleRequest request) {
+        // Get the existing school
+        Schule existing = getById(id);
+        
+        // Encrypt the password if provided
+        String encryptedPassword = null;
+        if (request.svwsPassword() != null && !request.svwsPassword().isEmpty()) {
+            encryptedPassword = passwordCipher.encrypt(request.svwsPassword());
+        } else if (existing.svwsUserPasswordEncrypted() != null) {
+            // Keep existing password if no new one provided
+            encryptedPassword = existing.svwsUserPasswordEncrypted();
+        }
+        
+        // Create updated school
+        Schule updated = new Schule(
+            id,
+            existing.svwsServerId(),
+            request.svwsSchema(),
+            request.svwsUsername(),
+            encryptedPassword,
+            existing.createdAt(),
+            Instant.now()
+        );
+        
+        // Update in repository
+        repository.updateSchool(updated);
+        
+        return updated;
+    }
+
+    @Transactional
+    public void deleteByServerId(UUID svwsServerId) {
+        repository.deleteByServerId(svwsServerId);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        Schule schule = repository.findSchoolById(id)
+                .orElseThrow(() -> new SchuleNotFoundException(id));
+        
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + id));
+        
+        String password = passwordCipher.decrypt(server.passwordEncrypted());
+        
+        try {
+            // First destroy the schema on the SVWS server
+            LOG.infov("Destroying schema {0} on SVWS server {1}", schule.svwsSchema(), server.name());
+            svwsClient.destroySchema(server.baseUrl(), schule.svwsSchema(), server.username(), password);
+            LOG.infov("Successfully destroyed schema {0}", schule.svwsSchema());
+        } catch (Exception e) {
+            LOG.errorv(e, "Failed to destroy schema {0} on SVWS server - will still delete from database", schule.svwsSchema());
+            // Continue with database deletion even if SVWS deletion fails
+            // This allows cleanup of orphaned database entries
+        }
+        
+        // Then delete from our database
+        repository.deleteSchool(id);
+        LOG.infov("Deleted school {0} from database", id);
+    }
+
+    public byte[] exportBackup(UUID id) {
+        Schule schule = repository.findSchoolById(id)
+                .orElseThrow(() -> new SchuleNotFoundException(id));
+        
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + id));
+        
+        String password = passwordCipher.decrypt(server.passwordEncrypted());
+        
+        LOG.infov("Exporting SQLite backup for schema {0} from SVWS server {1}", schule.svwsSchema(), server.name());
+        return svwsClient.exportSqliteBackup(server.baseUrl(), schule.svwsSchema(), server.username(), password);
+    }
+
+    public List<SchuleStammdatenResult> listStammdaten() {
+        return repository.findAllSchools().stream()
+                .map(this::buildStammdatenResult)
+                .toList();
+    }
+
+    public SchuleStammdatenResult getSchuleStammdatenById(UUID schuleId) {
+        Schule schule = getById(schuleId);
+        return buildStammdatenResult(schule);
+    }
+
+    private SchuleStammdatenResult buildStammdatenResult(Schule schule) {
+        SvwsServer server = serverRepository.getById(schule.svwsServerId()).orElse(null);
+        String serverName = server != null ? server.name() : "Unbekannter Server";
+
+        if (server == null) {
+            String message = "SVWS-Server nicht gefunden für Schema " + schule.svwsSchema();
+            LOG.warn(message);
+            return new SchuleStammdatenResult(schule.id(), schule.svwsSchema(), serverName, null, message);
+        }
+
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            String message = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Lesen der Anmeldedaten";
+            return new SchuleStammdatenResult(schule.id(), schule.svwsSchema(), serverName, null, message);
+        }
+
+        if (credentials == null) {
+            return new SchuleStammdatenResult(
+                    schule.id(),
+                    schule.svwsSchema(),
+                    serverName,
+                    null,
+                    "Anmeldedaten fehlen"
+            );
+        }
+
+        try {
+            SchuleStammdaten stammdaten = svwsClient.getSchuleStammdaten(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1]
+            );
+            return new SchuleStammdatenResult(
+                schule.id(),
+                schule.svwsSchema(),
+                serverName,
+                stammdaten,
+                null
+            );
+        } catch (SvwsClientException ex) {
+            LOG.warnf(ex, "Stammdaten nicht erreichbar für Schema %s (Status %d)", schule.svwsSchema(), ex.getStatusCode());
+            SvwsSchuleInfo fallbackInfo = tryFallbackInfo(server, schule, credentials);
+            if (fallbackInfo != null) {
+                return new SchuleStammdatenResult(
+                    schule.id(),
+                    schule.svwsSchema(),
+                    serverName,
+                    new SchuleStammdaten(fallbackInfo.schulnummer(), fallbackInfo.name(), null, null),
+                    "Eingeschränkte Ansicht: " + ex.getMessage()
+                );
+            }
+            String message = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Laden der Stammdaten";
+            return new SchuleStammdatenResult(
+                schule.id(),
+                schule.svwsSchema(),
+                serverName,
+                null,
+                message
+            );
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Laden der Stammdaten für Schema %s", schule.svwsSchema());
+            String message = ex.getMessage() != null ? ex.getMessage() : "Fehler beim Laden der Stammdaten";
+            return new SchuleStammdatenResult(
+                schule.id(),
+                schule.svwsSchema(),
+                serverName,
+                null,
+                message
+            );
+        }
+    }
+
+    public SchuleStatistikenGesamt getStatistiken(UUID schuleId) {
+        Schule schule = getById(schuleId);
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + schuleId));
+
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            throw new IllegalStateException("Fehler beim Lesen der Anmeldedaten", ex);
+        }
+
+        if (credentials == null) {
+            throw new IllegalStateException("Anmeldedaten fehlen für Schule " + schuleId);
+        }
+
+        try {
+            SchuleStatistikenRaw rawData = svwsClient.getSchuleStatistiken(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1]
+            );
+            return computeAggregates(rawData);
+        } catch (SvwsClientException ex) {
+            // Handle 404: Statistics endpoint not available for this school - return empty statistics
+            if (ex.getStatusCode() == 404) {
+                LOG.warnf("Statistics endpoint not available for schema %s", schule.svwsSchema());
+                return createEmptyStatistiken();
+            }
+            // Handle 200 with bad JSON: School database exists but has malformed statistics data
+            if (ex.getStatusCode() == 200) {
+                LOG.warnf("Statistics JSON parsing failed for schema %s", schule.svwsSchema());
+                return createEmptyStatistiken();
+            }
+            LOG.warnf(ex, "Statistiken nicht erreichbar für Schema %s (Status %d)", schule.svwsSchema(), ex.getStatusCode());
+            throw new IllegalStateException("Statistiken nicht erreichbar: " + ex.getMessage(), ex);
+        }
+    }
+
+    public List<SchuelerAuswahl> getSchuelerAuswahlliste(UUID schuleId) {
+        Schule schule = getById(schuleId);
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + schuleId));
+
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            throw new IllegalStateException("Fehler beim Lesen der Anmeldedaten", ex);
+        }
+
+        if (credentials == null) {
+            throw new IllegalStateException("Anmeldedaten fehlen für Schule " + schuleId);
+        }
+
+        SchuleStammdaten stammdaten = svwsClient.getSchuleStammdaten(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1]
+        );
+
+        Integer abschnitt = stammdaten != null ? stammdaten.getIdSchuljahresabschnitt() : null;
+        if (abschnitt == null) {
+            throw new IllegalStateException("idSchuljahresabschnitt konnte nicht ermittelt werden");
+        }
+
+        return svwsClient.getSchuelerAuswahlliste(
+                server.baseUrl(),
+                schule.svwsSchema(),
+                credentials[0],
+                credentials[1],
+                abschnitt,
+                List.of(0, 1, 2, 3)
         );
     }
 
-    private SchuleStatus mapStatus(int statusCode) {
-        if (statusCode == 401 || statusCode == 403) {
-            return SchuleStatus.INVALID_CREDENTIALS;
-        }
-        if (statusCode == 408 || statusCode == 504) {
-            return SchuleStatus.UNREACHABLE;
-        }
-        return SchuleStatus.ERROR;
-    }
+    public SchuelerStammdaten getSchuelerStammdaten(UUID schuleId, Long schuelerId) {
+        Schule schule = getById(schuleId);
+        SvwsServer server = serverRepository.getById(schule.svwsServerId())
+                .orElseThrow(() -> new IllegalStateException("SVWS-Server nicht gefunden für Schule " + schuleId));
 
-    private SchuleStatus mapStatus(RuntimeException ex) {
-        if (isNetworkIssue(ex)) {
-            return SchuleStatus.UNREACHABLE;
+        String[] credentials;
+        try {
+            credentials = resolveCredentials(schule, server);
+        } catch (Exception ex) {
+            LOG.warnf(ex, "Fehler beim Entschlüsseln der Anmeldedaten für Schema %s", schule.svwsSchema());
+            throw new IllegalStateException("Fehler beim Lesen der Anmeldedaten", ex);
         }
-        return SchuleStatus.ERROR;
-    }
 
-    private SyncStatus mapSyncStatus(int statusCode) {
-        if (statusCode == 401 || statusCode == 403) {
-            return SyncStatus.INVALID_CREDENTIALS;
+        if (credentials == null) {
+            throw new IllegalStateException("Anmeldedaten fehlen für Schule " + schuleId);
         }
-        if (statusCode == 408 || statusCode == 504) {
-            return SyncStatus.UNREACHABLE;
-        }
-        return SyncStatus.ERROR;
-    }
 
-    private SyncStatus mapSyncStatus(RuntimeException ex) {
-        if (isNetworkIssue(ex)) {
-            return SyncStatus.UNREACHABLE;
-        }
-        return SyncStatus.ERROR;
-    }
+        SchuelerStammdaten schueler = svwsClient.getSchuelerStammdatenByIds(
+                        server.baseUrl(),
+                        schule.svwsSchema(),
+                        credentials[0],
+                        credentials[1],
+                        List.of(schuelerId)
+                )
+                .stream()
+                .filter(s -> s.getId() != null && s.getId().equals(schuelerId))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("Schüler nicht gefunden: " + schuelerId));
 
-    private boolean isNetworkIssue(RuntimeException ex) {
-        Throwable current = ex;
-        while (current != null) {
-            if (current instanceof SocketTimeoutException || current instanceof ConnectException) {
-                return true;
+        String plz = schueler.getPlz();
+        String ort = schueler.getOrt();
+
+        if (schueler.getWohnortID() != null) {
+            List<OrtKatalogEintrag> orte = svwsClient.getOrte(
+                    server.baseUrl(),
+                    schule.svwsSchema(),
+                    credentials[0],
+                    credentials[1]
+            );
+            OrtKatalogEintrag ortEintrag = orte.stream()
+                    .filter(o -> o.id() != null && o.id().equals(schueler.getWohnortID()))
+                    .findFirst()
+                    .orElse(null);
+            if (ortEintrag != null) {
+                if (ortEintrag.plz() != null && !ortEintrag.plz().isBlank()) {
+                    plz = ortEintrag.plz();
+                }
+                if (ortEintrag.ortsname() != null && !ortEintrag.ortsname().isBlank()) {
+                    ort = ortEintrag.ortsname();
+                }
             }
-            current = current.getCause();
         }
-        return false;
+
+        // Update the object with enriched data
+        schueler.setPlz(plz);
+        schueler.setOrt(ort);
+        
+        return schueler;
     }
 
-    private String mapError(SchuleStatus status) {
-        return switch (status) {
-            case INVALID_CREDENTIALS -> "Invalid credentials";
-            case UNREACHABLE -> "SVWS unreachable";
-            case ERROR -> "SVWS error";
-            default -> null;
-        };
+    private SchuleStatistikenGesamt computeAggregates(SchuleStatistikenRaw rawData) {
+        List<SchuleStatistikenRaw.Schueler> students = rawData.schueler();
+        if (students == null) {
+            students = List.of();
+        }
+
+        // Basic counts
+        int totalStudents = students.size();
+        int maleStudents = (int) students.stream().filter(s -> s.geschlecht() != null && s.geschlecht() == 4).count();
+        int femaleStudents = (int) students.stream().filter(s -> s.geschlecht() != null && s.geschlecht() == 3).count();
+        int studentsWithSpecialNeeds = (int) students.stream()
+                .filter(s -> s.idFoerderschwerpunkt1() != null || s.idFoerderschwerpunkt2() != null)
+                .count();
+        int studentsWithMigrationBackground = (int) students.stream()
+                .filter(s -> s.hatMigrationshintergrund() != null && s.hatMigrationshintergrund())
+                .count();
+
+        // Abitur counts
+        int abiStudentsEligible = (int) students.stream()
+                .filter(s -> s.abitur() != null)
+                .count();
+        int abiStudentsPassed = (int) students.stream()
+                .filter(s -> s.abitur() != null && s.abitur().hatBestanden() != null && s.abitur().hatBestanden())
+                .count();
+
+        // Grade distribution
+        Map<Integer, Integer> gradeCountsById = new HashMap<>();
+        Map<Integer, String> gradeNamesById = new HashMap<>();
+        if (rawData.jahrgaenge() != null) {
+            for (SchuleStatistikenRaw.Jahrgang jg : rawData.jahrgaenge()) {
+                gradeNamesById.put(jg.id(), jg.kuerzel());
+            }
+        }
+
+        for (SchuleStatistikenRaw.Schueler student : students) {
+            if (student.lernabschnitte() != null) {
+                for (SchuleStatistikenRaw.Lernabschnitt la : student.lernabschnitte()) {
+                    gradeCountsById.merge(la.idJahrgang(), 1, Integer::sum);
+                }
+            }
+        }
+
+        List<SchuleStatistikenGesamt.GradeStatistic> studentsByGrade = gradeCountsById.entrySet().stream()
+                .map(e -> new SchuleStatistikenGesamt.GradeStatistic(
+                        gradeNamesById.getOrDefault(e.getKey(), "Grade " + e.getKey()),
+                        e.getValue()
+                ))
+                .sorted((a, b) -> {
+                    // Get grade IDs for sorting
+                    Integer aGradeId = gradeNamesById.entrySet().stream()
+                            .filter(kv -> kv.getValue().equals(a.gradeName()))
+                            .map(Map.Entry::getKey)
+                            .findFirst()
+                            .orElse(Integer.MAX_VALUE);
+                    Integer bGradeId = gradeNamesById.entrySet().stream()
+                            .filter(kv -> kv.getValue().equals(b.gradeName()))
+                            .map(Map.Entry::getKey)
+                            .findFirst()
+                            .orElse(Integer.MAX_VALUE);
+                    return Integer.compare(aGradeId, bGradeId);
+                })
+                .toList();
+
+        // Top locations (top 5)
+        Map<Integer, Integer> locationCounts = new HashMap<>();
+        students.forEach(s -> {
+            if (s.wohnortID() != null) {
+                locationCounts.merge(s.wohnortID(), 1, Integer::sum);
+            }
+        });
+
+        Map<Integer, SchuleStatistikenRaw.Ort> ortesById = new HashMap<>();
+        if (rawData.orte() != null) {
+            for (SchuleStatistikenRaw.Ort ort : rawData.orte()) {
+                ortesById.put(ort.id(), ort);
+            }
+        }
+
+        List<SchuleStatistikenGesamt.LocationStatistic> topLocations = locationCounts.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .map(e -> {
+                    SchuleStatistikenRaw.Ort ort = ortesById.get(e.getKey());
+                    String locationName = ort != null ? ort.ortsname() : "Unbekannt";
+                    String postalCode = ort != null ? ort.plz() : "";
+                    return new SchuleStatistikenGesamt.LocationStatistic(locationName, postalCode, e.getValue());
+                })
+                .toList();
+
+        return new SchuleStatistikenGesamt(
+                totalStudents,
+                maleStudents,
+                femaleStudents,
+                studentsWithSpecialNeeds,
+                studentsWithMigrationBackground,
+                abiStudentsEligible,
+                abiStudentsPassed,
+                studentsByGrade,
+                topLocations
+        );
+    }
+
+    private SchuleStatistikenGesamt createEmptyStatistiken() {
+        return new SchuleStatistikenGesamt(
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                List.of(),
+                List.of()
+        );
+    }
+
+    private String[] resolveCredentials(Schule schule, SvwsServer server) {
+        String username = safeTrim(schule.svwsUsername());
+        if (!username.isEmpty()) {
+            return new String[]{
+                    username,
+                    decryptOrEmpty(schule.svwsUserPasswordEncrypted())
+            };
+        }
+
+        String serverUsername = safeTrim(server.username());
+        if (!serverUsername.isEmpty()) {
+            return new String[]{
+                    serverUsername,
+                    decryptOrEmpty(server.passwordEncrypted())
+            };
+        }
+
+        return null;
+    }
+
+    private SvwsSchuleInfo tryFallbackInfo(SvwsServer server, Schule schule, String[] credentials) {
+        try {
+            return svwsClient.getSchuleInfo(
+                    server.baseUrl(),
+                    schule.svwsSchema(),
+                    credentials[0],
+                    credentials[1]
+            );
+        } catch (Exception fallback) {
+            LOG.debugf(fallback, "Fallback-SchuleInfo für Schema %s fehlgeschlagen", schule.svwsSchema());
+            return null;
+        }
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String decryptOrEmpty(String encrypted) {
+        if (encrypted == null || encrypted.isEmpty()) {
+            return "";
+        }
+        return passwordCipher.decrypt(encrypted);
     }
 }

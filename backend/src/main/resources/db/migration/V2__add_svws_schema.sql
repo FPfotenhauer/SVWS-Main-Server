@@ -1,2 +1,0 @@
-ALTER TABLE schule
-    ADD COLUMN svws_schema VARCHAR(255) NOT NULL;

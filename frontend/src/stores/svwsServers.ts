@@ -35,6 +35,23 @@ export const useSvwsServersStore = defineStore("svwsServers", {
         throw err;
       }
     },
+    async updateServer(id: string, payload: SvwsServerRequest) {
+      this.error = "";
+      try {
+        const response = await api.put<SvwsServer>(`/api/svws-servers/${id}`, payload);
+        const index = this.servers.findIndex(s => s.id === id);
+        if (index !== -1) {
+          this.servers[index] = response.data;
+        }
+        if (this.selectedServer?.id === id) {
+          this.selectedServer = response.data;
+        }
+        return response.data;
+      } catch (err) {
+        this.error = err instanceof Error ? err.message : "Failed to update server";
+        throw err;
+      }
+    },
     async testConnection(id: string) {
       this.error = "";
       try {

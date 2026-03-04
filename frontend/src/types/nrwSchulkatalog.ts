@@ -1,6 +1,7 @@
 export interface NrwSchulkatalogeintrag {
   id: string;
   schulnummer: string;
+  oeart: string | null;
   amtsbez1: string | null;
   amtsbez2: string | null;
   amtsbez3: string | null;

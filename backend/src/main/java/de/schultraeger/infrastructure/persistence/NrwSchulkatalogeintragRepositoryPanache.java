@@ -18,7 +18,7 @@ public class NrwSchulkatalogeintragRepositoryPanache implements PanacheRepositor
 
     @Override
     public List<NrwSchulkatalogeintrag> findAll(int offset, int limit) {
-        return find("ORDER BY schulname").range(offset, offset + limit - 1)
+        return find("oeart = :oeart ORDER BY schulname", Parameters.with("oeart", "1")).range(offset, offset + limit - 1)
                 .list()
                 .stream()
                 .map(NrwSchulkatalogeintragMapper::toDomain)
@@ -28,7 +28,7 @@ public class NrwSchulkatalogeintragRepositoryPanache implements PanacheRepositor
     @Override
     public List<NrwSchulkatalogeintrag> findAll(int offset, int limit, String sortBy, String sortDir) {
         String orderBy = buildOrderByClause(sortBy, sortDir);
-        return find("ORDER BY " + orderBy).range(offset, offset + limit - 1)
+        return find("oeart = :oeart ORDER BY " + orderBy, Parameters.with("oeart", "1")).range(offset, offset + limit - 1)
                 .list()
                 .stream()
                 .map(NrwSchulkatalogeintragMapper::toDomain)
@@ -39,9 +39,9 @@ public class NrwSchulkatalogeintragRepositoryPanache implements PanacheRepositor
     public List<NrwSchulkatalogeintrag> search(String query, int offset, int limit) {
         String searchQuery = "%" + query.toLowerCase() + "%";
         return find(
-                "LOWER(schulname) LIKE :query OR LOWER(ort) LIKE :query OR LOWER(kreis) LIKE :query OR schulnummer LIKE :query " +
+            "oeart = :oeart AND (LOWER(schulname) LIKE :query OR LOWER(ort) LIKE :query OR LOWER(kreis) LIKE :query OR schulnummer LIKE :query) " +
                         "ORDER BY schulname",
-                Parameters.with("query", searchQuery)
+            Parameters.with("query", searchQuery).and("oeart", "1")
         ).range(offset, offset + limit - 1)
                 .list()
                 .stream()
@@ -54,9 +54,9 @@ public class NrwSchulkatalogeintragRepositoryPanache implements PanacheRepositor
         String searchQuery = "%" + query.toLowerCase() + "%";
         String orderBy = buildOrderByClause(sortBy, sortDir);
         return find(
-                "LOWER(schulname) LIKE :query OR LOWER(ort) LIKE :query OR LOWER(kreis) LIKE :query OR schulnummer LIKE :query " +
+            "oeart = :oeart AND (LOWER(schulname) LIKE :query OR LOWER(ort) LIKE :query OR LOWER(kreis) LIKE :query OR schulnummer LIKE :query) " +
                         "ORDER BY " + orderBy,
-                Parameters.with("query", searchQuery)
+            Parameters.with("query", searchQuery).and("oeart", "1")
         ).range(offset, offset + limit - 1)
                 .list()
                 .stream()
@@ -97,15 +97,15 @@ public class NrwSchulkatalogeintragRepositoryPanache implements PanacheRepositor
 
     @Override
     public long getTotalCount() {
-        return count();
+        return count("oeart", "1");
     }
 
     @Override
     public long countSearch(String query) {
         String searchQuery = "%" + query.toLowerCase() + "%";
         return count(
-                "LOWER(schulname) LIKE :query OR LOWER(ort) LIKE :query OR LOWER(kreis) LIKE :query OR schulnummer LIKE :query",
-                Parameters.with("query", searchQuery)
+                "oeart = :oeart AND (LOWER(schulname) LIKE :query OR LOWER(ort) LIKE :query OR LOWER(kreis) LIKE :query OR schulnummer LIKE :query)",
+                Parameters.with("query", searchQuery).and("oeart", "1")
         );
     }
 

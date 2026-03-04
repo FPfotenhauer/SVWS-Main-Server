@@ -1,45 +1,26 @@
-import type { SchuleStatus, SyncStatus } from "./status";
-
 export interface Schule {
   id: string;
-  name: string;
-  schulnummer?: number | null;
-  svwsUrl: string;
+  svwsServerId: string;
+  svwsServerName: string;
   svwsSchema: string;
-  svwsUsername: string;
-  status: SchuleStatus;
-  lastSyncAt?: string | null;
-  lastSyncStatus?: SyncStatus | null;
-  lastError?: string | null;
+  svwsUsername?: string;
   createdAt: string;
   updatedAt: string;
-  // Address information
-  strasse?: string | null;
-  hausnummer?: string | null;
-  hausnummerZusatz?: string | null;
-  plz?: string | null;
-  ort?: string | null;
-  // Contact information
-  telefon?: string | null;
-  fax?: string | null;
-  email?: string | null;
-  homepage?: string | null;
-  // Administrative information
-  schulleiter?: string | null;
-  schulleiterTelefon?: string | null;
-  schulleiterEmail?: string | null;
-  // Region information
-  kreis?: string | null;
-  schulamt?: string | null;
-  // Additional metadata
-  schulnummer2?: string | null;
-  schulstatus?: string | null;
 }
 
 export interface SchuleRequest {
-  name: string;
-  svwsUrl: string;
+  svwsServerId: string;
   svwsSchema: string;
-  svwsUsername: string;
-  svwsPassword: string;
+  svwsUsername?: string;
+  svwsPassword?: string;
+}
+
+export interface SchuleStammdatenResponse {
+  id: string;
+  schema: string;
+  serverName: string;
+  schulnummer?: number | null;
+  bezeichnung1?: string | null;
+  schulform?: string | null;
+  error?: string | null;
 }

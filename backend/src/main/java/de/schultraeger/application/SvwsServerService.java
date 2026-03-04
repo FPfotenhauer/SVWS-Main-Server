@@ -4,6 +4,7 @@ import de.schultraeger.application.port.out.PasswordCipher;
 import de.schultraeger.application.port.out.SvwsServerRepository;
 import de.schultraeger.domain.ServerStatus;
 import de.schultraeger.domain.SvwsServer;
+import org.eclipse.microprofile.context.ManagedExecutor;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -12,13 +13,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.enterprise.event.Event;
+import jakarta.enterprise.event.Observes;
+import jakarta.enterprise.event.TransactionPhase;
+
 @ApplicationScoped
 public class SvwsServerService {
     @Inject
     SvwsServerRepository repository;
 
     @Inject
+    SchuleService schuleService;
+
+    @Inject
+    ManagedExecutor managedExecutor;
+
+    @Inject
     PasswordCipher passwordCipher;
+
+    @Inject
+    Event<SvwsServer> serverCreatedEvent;
 
     public List<SvwsServer> listAll() {
         return repository.getAllServers();
@@ -42,7 +56,37 @@ public class SvwsServerService {
             LocalDateTime.now(),
             LocalDateTime.now()
         );
-        return repository.save(server);
+        SvwsServer saved = repository.save(server);
+        
+        serverCreatedEvent.fire(saved);
+        
+        return saved;
+    }
+
+    /**
+     * Listens for server creation and triggers school import after the transaction succeeds.
+     */
+    void onServerCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) SvwsServer server) {
+        managedExecutor.submit(() -> {
+            try {
+                System.out.println("DEBUG: Starting background school discovery for server " + server.name() + " (" + server.id() + ")");
+                // Use the server parameter directly (already from DB), don't try to reload in background thread
+                int imported = schuleService.importSchoolsFromSvwsServer(server);
+                updateStatusQuietly(server.id(), ServerStatus.CONNECTED, "Imported " + imported + " schools");
+            } catch (Exception e) {
+                System.err.println("DEBUG: Error in background school discovery: " + e.getMessage());
+                e.printStackTrace();
+                updateStatusQuietly(server.id(), ServerStatus.ERROR, e.getMessage());
+            }
+        });
+    }
+
+    private void updateStatusQuietly(UUID id, ServerStatus status, String error) {
+        try {
+            updateStatus(id, status, error);
+        } catch (Exception e) {
+            System.err.println("Failed to update server status: " + e.getMessage());
+        }
     }
 
     @Transactional
@@ -72,10 +116,11 @@ public class SvwsServerService {
 
     @Transactional
     public void delete(UUID id) {
+        schuleService.deleteByServerId(id);
         repository.delete(id);
     }
 
-    @Transactional
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public SvwsServer updateStatus(UUID id, ServerStatus status, String error) throws Exception {
         Optional<SvwsServer> existing = repository.getById(id);
         if (existing.isEmpty()) {

@@ -11,6 +11,7 @@ public class NrwSchulkatalogeintragMapper {
         return new NrwSchulkatalogeintrag(
                 entity.id,
                 entity.schulnummer,
+                entity.oeart,
             entity.amtsbez1,
             entity.amtsbez2,
             entity.amtsbez3,
@@ -37,6 +38,7 @@ public class NrwSchulkatalogeintragMapper {
         NrwSchulkatalogeintragEntity entity = new NrwSchulkatalogeintragEntity();
         entity.id = domain.id();
         entity.schulnummer = domain.schulnummer();
+        entity.oeart = domain.oeart();
         entity.amtsbez1 = domain.amtsbez1();
         entity.amtsbez2 = domain.amtsbez2();
         entity.amtsbez3 = domain.amtsbez3();

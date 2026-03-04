@@ -14,7 +14,9 @@ export const useSchulenStore = defineStore("schulen", {
       this.error = "";
       try {
         const response = await api.get<Schule[]>("/api/schulen");
+        console.log("Schools loaded from API:", response.data);
         this.items = response.data;
+        console.log("Store items after load:", this.items);
       } catch (err) {
         this.error = "Failed to load schools";
       } finally {
@@ -26,15 +28,19 @@ export const useSchulenStore = defineStore("schulen", {
       const response = await api.post<Schule>("/api/schulen", payload);
       this.items = [response.data, ...this.items];
     },
-    async verify(id: string) {
+    async update(id: string, payload: Partial<SchuleRequest>) {
       this.error = "";
-      const response = await api.post<Schule>(`/api/schulen/${id}/verify`);
-      this.items = this.items.map((item) => (item.id === id ? response.data : item));
+      const response = await api.put<Schule>(`/api/schulen/${id}`, payload);
+      const index = this.items.findIndex(s => s.id === id);
+      if (index >= 0) {
+        this.items[index] = response.data;
+      }
+      return response.data;
     },
-    async sync(id: string) {
+    async delete(id: string) {
       this.error = "";
-      const response = await api.post<Schule>(`/api/schulen/${id}/sync`);
-      this.items = this.items.map((item) => (item.id === id ? response.data : item));
+      await api.delete(`/api/schulen/${id}`);
+      this.items = this.items.filter(s => s.id !== id);
     }
   }
 });

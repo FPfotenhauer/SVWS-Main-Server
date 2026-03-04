@@ -9,6 +9,7 @@ import java.util.UUID;
 public record NrwSchulkatalogeintrag(
         UUID id,
         String schulnummer,
+        String oeart,
         String amtsbez1,
         String amtsbez2,
         String amtsbez3,

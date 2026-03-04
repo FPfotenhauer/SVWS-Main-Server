@@ -1,24 +1,26 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE tenant (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL
+-- Create SVWS servers table
+CREATE TABLE svws_servers (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    base_url VARCHAR(512) NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    password_encrypted VARCHAR(512) NOT NULL,
+    status VARCHAR(50) DEFAULT 'UNTESTED',
+    last_error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_svws_servers_name ON svws_servers(name);
 
 CREATE TABLE schule (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    svws_url VARCHAR(512) NOT NULL,
-    svws_username VARCHAR(255) NOT NULL,
-    svws_password VARCHAR(512) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    last_sync_at TIMESTAMPTZ,
-    last_sync_status VARCHAR(50),
-    last_error TEXT,
+    svws_server_id UUID REFERENCES svws_servers(id) ON DELETE CASCADE,
+    svws_schema VARCHAR(255) NOT NULL,
+    svws_username VARCHAR(255),
+    svws_user_password_encrypted VARCHAR(512),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_schule_tenant FOREIGN KEY (tenant_id) REFERENCES tenant(id)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX idx_schule_tenant_id ON schule(tenant_id);

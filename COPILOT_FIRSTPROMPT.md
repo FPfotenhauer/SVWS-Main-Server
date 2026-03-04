@@ -62,7 +62,7 @@ Kein Over-Engineering.
 ## Datenbank
 
 * PostgreSQL
-* tenant_id in jeder Tabelle
+* Separate Datenbankinstanz pro Mandant; keine `tenant_id`-Spalten in Anwendungstabellen
 
 ## Deployment
 
@@ -101,21 +101,11 @@ Keine Business-Logik im Controller.
 
 Mandant = Schulträger.
 
-Jede persistente Tabelle enthält:
+Mandanten werden durch separate Datenbanken pro Mandant isoliert. Daher enthält das Anwendungs-Schema keine `tenant_id`-Spalten. Die Zuordnung eines Requests zu einer Mandanten-Datenbank erfolgt durch die Deployment- bzw. Verbindungs-Konfiguration (z. B. unterschiedliche DB-URLs / Connection-Pools pro Mandant).
 
-```
-tenant_id UUID NOT NULL
-```
+Tenant-Informationen werden nicht aus dem JWT, Request-Headern oder Request-Body abgeleitet.
 
-Tenant wird ausschließlich aus dem JWT gelesen.
-
-Tenant darf niemals aus:
-
-* Query Parametern
-* Request Body
-* Unsicheren Headern
-
-Repositories müssen tenant-aware sein.
+Repositories sind mandantenneutral und benötigen keine tenant-aware-Filterlogik.
 
 ---
 
@@ -125,7 +115,7 @@ Repositories müssen tenant-aware sein.
 * Stateless Backend
 * Rolle `ADMIN`
 * @RolesAllowed("ADMIN")
-* tenant_id Claim verpflichtend
+* Kein `tenant_id`-Claim im JWT erforderlich (Mandant wird durch Deployment/DB-Zuordnung bestimmt)
 
 Keine eigene Login-Implementierung.
 
@@ -182,9 +172,10 @@ Speichern:
 
 * JSON Logging
 * request_id
-* tenant_id
 * user_id
 * Dauer von SVWS-Aufrufen
+
+Hinweis: Durch DB-per-tenant gibt es kein globales `tenant_id`-Claim; Logs können optional Deployment- oder Instanzkennungen enthalten.
 
 Keine sensiblen Daten loggen.
 
@@ -204,15 +195,11 @@ Keine sensiblen Daten loggen.
 
 Erstelle Flyway Migration V1 mit:
 
-### Tabelle: tenant
+Hinweis: Die Mandanten-Registry wird außerhalb der einzelnen Mandanten-Datenbanken verwaltet; in der Anwendungsdatenbank selbst existiert keine zentrale `tenant`-Tabelle.
+
+### Tabelle: schule (pro Mandant in dessen DB)
 
 * id
-* name
-
-### Tabelle: schule
-
-* id
-* tenant_id
 * name
 * svws_url
 * svws_username
@@ -223,8 +210,6 @@ Erstelle Flyway Migration V1 mit:
 * last_error
 * created_at
 * updated_at
-
-Index auf tenant_id.
 
 ---
 
