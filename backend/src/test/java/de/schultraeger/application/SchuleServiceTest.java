@@ -4,17 +4,22 @@ import de.schultraeger.application.dto.SvwsSchuleInfo;
 import de.schultraeger.application.dto.SchuleStatistikenGesamt;
 import de.schultraeger.application.dto.SchuleStatistikenRaw;
 import de.schultraeger.application.port.out.PasswordCipher;
+import de.schultraeger.application.port.out.NrwSchulkatalogeintragRepository;
 import de.schultraeger.application.port.out.SchuleRepository;
 import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsServerRepository;
+import de.schultraeger.domain.NrwSchulkatalogeintrag;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
 import de.schultraeger.domain.ServerStatus;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,7 +68,7 @@ class SchuleServiceTest {
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo, null);
 
         int imported = service.importSchoolsFromSvwsServer(server);
 
@@ -111,7 +116,7 @@ class SchuleServiceTest {
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo, null);
         int imported = service.importSchoolsFromSvwsServer(server);
 
         assertEquals(1, imported); // Only schema2 is new
@@ -155,7 +160,7 @@ class SchuleServiceTest {
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo, null);
 
         int imported = service.importSchoolsFromSvwsServer(server);
 
@@ -201,7 +206,7 @@ class SchuleServiceTest {
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo, null);
         
         // Create a school
         service.saveSchoolIfNew(server, createStubInfo("test-schema"));
@@ -226,7 +231,7 @@ class SchuleServiceTest {
         StubSvwsServerRepository serverRepo = new StubSvwsServerRepository();
         SvwsServer server = serverRepo.getById(SERVER_ID).orElseThrow();
 
-        SchuleService bootstrap = new SchuleService(repo, null, new StubCipher(), serverRepo);
+        SchuleService bootstrap = new SchuleService(repo, null, new StubCipher(), serverRepo, null);
         bootstrap.saveSchoolIfNew(server, createStubInfo("schema-confessions"));
         UUID schuleId = repo.findByServerIdAndSchema(SERVER_ID, "schema-confessions").orElseThrow().id();
 
@@ -261,7 +266,8 @@ class SchuleServiceTest {
                                         null,
                                         null,
                                         false,
-                                        2
+                                        2,
+                                        null
                                 ),
                                 new SchuleStatistikenRaw.Schueler(
                                     2L,
@@ -274,7 +280,8 @@ class SchuleServiceTest {
                                     null,
                                     null,
                                     false,
-                                    2
+                                    2,
+                                    null
                                 ),
                                 new SchuleStatistikenRaw.Schueler(
                                     3L,
@@ -287,7 +294,8 @@ class SchuleServiceTest {
                                     null,
                                     null,
                                     false,
-                                    2
+                                    2,
+                                    null
                                 ),
                                 new SchuleStatistikenRaw.Schueler(
                                     4L,
@@ -300,7 +308,8 @@ class SchuleServiceTest {
                                     null,
                                     null,
                                     false,
-                                    2
+                                    2,
+                                    null
                                 )
                         ),
                         List.of(
@@ -342,7 +351,7 @@ class SchuleServiceTest {
             }
         };
 
-        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo);
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo, null);
         SchuleStatistikenGesamt result = service.getStatistiken(schuleId);
 
         assertEquals(2, result.confessionsByGrade().size());
@@ -428,10 +437,170 @@ class SchuleServiceTest {
         assertEquals(2, mixTur.count());
         assertEquals(0, mixTur.maleCount());
         assertEquals(2, mixTur.femaleCount());
-        }
+    }
+
+    @Test
+    void getStatistikenShouldNormalizeOriginSchoolFormKuerzel() {
+        InMemoryRepo repo = new InMemoryRepo();
+        StubSvwsServerRepository serverRepo = new StubSvwsServerRepository();
+        SvwsServer server = serverRepo.getById(SERVER_ID).orElseThrow();
+
+        SchuleService bootstrap = new SchuleService(repo, null, new StubCipher(), serverRepo, null);
+        bootstrap.saveSchoolIfNew(server, createStubInfo("schema-origin-schoolform"));
+        UUID schuleId = repo.findByServerIdAndSchema(SERVER_ID, "schema-origin-schoolform").orElseThrow().id();
+
+        StubNrwRepository nrwRepo = new StubNrwRepository();
+        nrwRepo.put(createNrwEntry("105752", "GMS", "Leverkusen, GG Am Friedenspark", "Staedt. Gemeinschaftsgrundschule"));
+        nrwRepo.put(createNrwEntry("112082", "RKB", "Duesseldorf, KG Kartause-Hain-Schule", "Staedt. Kath. Grundschule"));
+        nrwRepo.put(createNrwEntry("100010", "20", "Koeln, Gym Gymnasium Claudia Agrippina", "Gymnasium Claudia Agrippina"));
+
+        SvwsClient client = new SvwsClient() {
+            @Override
+            public boolean isPrivileged(String baseUrl, String username, String password) {
+                return true;
+            }
+
+            @Override
+            public SvwsSchuleInfo getSchuleInfo(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+
+            @Override
+            public de.schultraeger.application.dto.SchuleStammdaten getSchuleStammdaten(String baseUrl, String schema, String username, String password) {
+                return null;
+            }
+
+            @Override
+            public SchuleStatistikenRaw getSchuleStatistiken(String baseUrl, String schema, String username, String password) {
+                return new SchuleStatistikenRaw(
+                        List.of(
+                                new SchuleStatistikenRaw.Schueler(
+                                        1L,
+                                        4,
+                                        List.of(new SchuleStatistikenRaw.Lernabschnitt(1, 10, null, null, null)),
+                                        null,
+                                        null,
+                                        "DEU",
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        2,
+                                        "105752"
+                                ),
+                                new SchuleStatistikenRaw.Schueler(
+                                        2L,
+                                        3,
+                                        List.of(new SchuleStatistikenRaw.Lernabschnitt(1, 10, null, null, null)),
+                                        null,
+                                        null,
+                                        "DEU",
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        2,
+                                        "112082"
+                                ),
+                                new SchuleStatistikenRaw.Schueler(
+                                        3L,
+                                        3,
+                                        List.of(new SchuleStatistikenRaw.Lernabschnitt(1, 10, null, null, null)),
+                                        null,
+                                        null,
+                                        "DEU",
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        2,
+                                        "100010"
+                                )
+                        ),
+                        List.of(new SchuleStatistikenRaw.Jahrgang(1, "5")),
+                        List.of(),
+                        List.of(new SchuleStatistikenRaw.Klasse(10, "MIX", null, 1)),
+                        List.of(),
+                        List.of()
+                );
+            }
+
+            @Override
+            public List<SvwsSchuleInfo> listSchools(String baseUrl, String username, String password) {
+                return List.of();
+            }
+
+            @Override
+            public void destroySchema(String baseUrl, String schema, String username, String password) {
+                // No-op for test
+            }
+
+            @Override
+            public byte[] exportSqliteBackup(String baseUrl, String schema, String username, String password) {
+                return new byte[0];
+            }
+        };
+
+        SchuleService service = new SchuleService(repo, client, new StubCipher(), serverRepo, nrwRepo);
+        SchuleStatistikenGesamt result = service.getStatistiken(schuleId);
+
+        SchuleStatistikenGesamt.ClassStatistic mixedClass = result.classStatistics().stream()
+                .filter(classStatistic -> "MIX".equals(classStatistic.className()))
+                .findFirst()
+                .orElseThrow();
+
+        SchuleStatistikenGesamt.OriginSchoolStatistic grundschule = mixedClass.originSchools().stream()
+                .filter(origin -> "105752".equals(origin.schulnummer()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("G", grundschule.schulformKuerzel());
+        assertEquals(1, grundschule.maleCount());
+        assertEquals(0, grundschule.femaleCount());
+
+        SchuleStatistikenGesamt.OriginSchoolStatistic grundschuleAlias = mixedClass.originSchools().stream()
+                .filter(origin -> "112082".equals(origin.schulnummer()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("G", grundschuleAlias.schulformKuerzel());
+        assertEquals(0, grundschuleAlias.maleCount());
+        assertEquals(1, grundschuleAlias.femaleCount());
+
+        SchuleStatistikenGesamt.OriginSchoolStatistic gymnasium = mixedClass.originSchools().stream()
+                .filter(origin -> "100010".equals(origin.schulnummer()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("GY", gymnasium.schulformKuerzel());
+    }
 
     private SchuleService service(SchuleRepository repo, SvwsServerRepository serverRepo) {
-        return new SchuleService(repo, null, new StubCipher(), serverRepo);
+        return new SchuleService(repo, null, new StubCipher(), serverRepo, null);
+    }
+
+    private NrwSchulkatalogeintrag createNrwEntry(String schulnummer, String schultyp, String schulname, String amtsbez1) {
+        return new NrwSchulkatalogeintrag(
+                UUID.randomUUID(),
+                schulnummer,
+                "1",
+                amtsbez1,
+                null,
+                null,
+                null,
+                null,
+                schulname,
+                schultyp,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                Instant.now(),
+                Instant.now()
+        );
     }
 
     private SvwsSchuleInfo createStubInfo(String schema) {
@@ -522,6 +691,66 @@ class SchuleServiceTest {
         @Override
         public String decrypt(String encryptedText) {
             return encryptedText.replace("enc(", "").replace(")", "");
+        }
+    }
+
+    private static class StubNrwRepository implements NrwSchulkatalogeintragRepository {
+        private final Map<String, NrwSchulkatalogeintrag> data = new HashMap<>();
+
+        void put(NrwSchulkatalogeintrag entry) {
+            data.put(entry.schulnummer(), entry);
+        }
+
+        @Override
+        public List<NrwSchulkatalogeintrag> findAll(int offset, int limit) {
+            return List.copyOf(data.values());
+        }
+
+        @Override
+        public List<NrwSchulkatalogeintrag> findAll(int offset, int limit, String sortBy, String sortDir) {
+            return List.copyOf(data.values());
+        }
+
+        @Override
+        public List<NrwSchulkatalogeintrag> search(String query, int offset, int limit) {
+            return List.of();
+        }
+
+        @Override
+        public List<NrwSchulkatalogeintrag> search(String query, int offset, int limit, String sortBy, String sortDir) {
+            return List.of();
+        }
+
+        @Override
+        public Optional<NrwSchulkatalogeintrag> findBySchulnummer(String schulnummer) {
+            return Optional.ofNullable(data.get(schulnummer));
+        }
+
+        @Override
+        public void save(NrwSchulkatalogeintrag eintrag) {
+            data.put(eintrag.schulnummer(), eintrag);
+        }
+
+        @Override
+        public void saveAll(List<NrwSchulkatalogeintrag> eintraege) {
+            for (NrwSchulkatalogeintrag entry : eintraege) {
+                save(entry);
+            }
+        }
+
+        @Override
+        public void clearAll() {
+            data.clear();
+        }
+
+        @Override
+        public long getTotalCount() {
+            return data.size();
+        }
+
+        @Override
+        public long countSearch(String query) {
+            return 0;
         }
     }
 }

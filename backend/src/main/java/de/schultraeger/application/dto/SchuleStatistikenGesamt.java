@@ -101,7 +101,27 @@ public record SchuleStatistikenGesamt(
             List<SpecialNeedStatistic> specialNeeds,
 
             @JsonProperty("nationalities")
-            List<NationalityStatistic> nationalities
+            List<NationalityStatistic> nationalities,
+
+            @JsonProperty("originSchools")
+            List<OriginSchoolStatistic> originSchools
+    ) {}
+
+    public record OriginSchoolStatistic(
+            @JsonProperty("schulnummer")
+            String schulnummer,
+
+            @JsonProperty("schulformKuerzel")
+            String schulformKuerzel,
+
+            @JsonProperty("count")
+            int count,
+
+            @JsonProperty("maleCount")
+            int maleCount,
+
+            @JsonProperty("femaleCount")
+            int femaleCount
     ) {}
 
     public record SpecialNeedStatistic(

@@ -315,6 +315,36 @@
                   </div>
                   <div v-else class="class-empty">Keine Nationalitätsdaten vorhanden</div>
                 </div>
+
+                  <div class="class-card-section">
+                    <div class="class-card-section-title">Herkunft</div>
+                    <div v-if="classStatistic.originSchools && classStatistic.originSchools.length" class="class-table-wrapper">
+                      <table class="class-table">
+                        <thead>
+                          <tr>
+                            <th>Schulnummer</th>
+                            <th>Schulform</th>
+                            <th class="class-align-right">Gesamt</th>
+                            <th class="class-align-right">M</th>
+                            <th class="class-align-right">W</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr
+                            v-for="origin in classStatistic.originSchools"
+                            :key="`${classStatistic.classId ?? classStatistic.className}-origin-${origin.schulnummer}`"
+                          >
+                            <td>{{ origin.schulnummer }}</td>
+                            <td>{{ origin.schulformKuerzel ?? '–' }}</td>
+                            <td class="class-align-right">{{ origin.count }}</td>
+                            <td class="class-align-right">{{ origin.maleCount }}</td>
+                            <td class="class-align-right">{{ origin.femaleCount }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="class-empty">Keine Herkunftsdaten vorhanden</div>
+                  </div>
               </article>
             </div>
           </div>
@@ -372,6 +402,13 @@ interface SchuleStatistikenGesamt {
     nationalities: Array<{
       nationalityCode: string;
       nationalityName: string;
+      count: number;
+      maleCount: number;
+      femaleCount: number;
+    }>;
+    originSchools: Array<{
+      schulnummer: string;
+      schulformKuerzel: string | null;
       count: number;
       maleCount: number;
       femaleCount: number;

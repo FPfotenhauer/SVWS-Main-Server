@@ -61,7 +61,10 @@ public record SchuleStatistikenRaw(
             Boolean hatMigrationshintergrund,
             
             @JsonProperty("status")
-            Integer status
+            Integer status,
+
+            @JsonProperty("vorherigeSchuleNr")
+            String vorherigeSchuleNr
     ) {}
     
     @JsonIgnoreProperties(ignoreUnknown = true)

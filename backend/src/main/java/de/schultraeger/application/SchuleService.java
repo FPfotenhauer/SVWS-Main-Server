@@ -13,6 +13,8 @@ import de.schultraeger.application.port.out.SvwsClient;
 import de.schultraeger.application.port.out.SvwsClientException;
 import de.schultraeger.application.port.out.SchuleRepository;
 import de.schultraeger.application.port.out.SvwsServerRepository;
+import de.schultraeger.application.port.out.NrwSchulkatalogeintragRepository;
+import de.schultraeger.domain.NrwSchulkatalogeintrag;
 import de.schultraeger.domain.Schule;
 import de.schultraeger.domain.SvwsServer;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -295,15 +297,18 @@ public class SchuleService {
     private final SvwsClient svwsClient;
     private final PasswordCipher passwordCipher;
     private final SvwsServerRepository serverRepository;
+    private final NrwSchulkatalogeintragRepository nrwSchulkatalogeintragRepository;
 
     public SchuleService(SchuleRepository repository,
                          SvwsClient svwsClient,
                          PasswordCipher passwordCipher,
-                         SvwsServerRepository serverRepository) {
+                         SvwsServerRepository serverRepository,
+                         NrwSchulkatalogeintragRepository nrwSchulkatalogeintragRepository) {
         this.repository = repository;
         this.svwsClient = svwsClient;
         this.passwordCipher = passwordCipher;
         this.serverRepository = serverRepository;
+        this.nrwSchulkatalogeintragRepository = nrwSchulkatalogeintragRepository;
     }
 
     public List<Schule> list() {
@@ -748,6 +753,9 @@ public class SchuleService {
         Map<Integer, Map<String, Set<Long>>> nationalityStudentIdsByClass = new HashMap<>();
         Map<Integer, Map<String, Set<Long>>> nationalityMaleStudentIdsByClass = new HashMap<>();
         Map<Integer, Map<String, Set<Long>>> nationalityFemaleStudentIdsByClass = new HashMap<>();
+        Map<Integer, Map<String, Set<Long>>> originSchoolStudentIdsByClass = new HashMap<>();
+        Map<Integer, Map<String, Set<Long>>> originSchoolMaleStudentIdsByClass = new HashMap<>();
+        Map<Integer, Map<String, Set<Long>>> originSchoolFemaleStudentIdsByClass = new HashMap<>();
 
         if (rawData.jahrgaenge() != null) {
             for (SchuleStatistikenRaw.Jahrgang jg : rawData.jahrgaenge()) {
@@ -833,6 +841,28 @@ public class SchuleService {
                                 .computeIfAbsent(nationalityKuerzel, ignored -> new HashSet<>())
                                 .add(student.id());
                         }
+
+                        String originSchuleNr = student.vorherigeSchuleNr();
+                        if (originSchuleNr != null && !originSchuleNr.isBlank()) {
+                            originSchoolStudentIdsByClass
+                                .computeIfAbsent(la.idKlasse(), ignored -> new HashMap<>())
+                                .computeIfAbsent(originSchuleNr, ignored -> new HashSet<>())
+                                .add(student.id());
+
+                            if (student.geschlecht() != null && student.geschlecht() == 4) {
+                                originSchoolMaleStudentIdsByClass
+                                    .computeIfAbsent(la.idKlasse(), ignored -> new HashMap<>())
+                                    .computeIfAbsent(originSchuleNr, ignored -> new HashSet<>())
+                                    .add(student.id());
+                            }
+
+                            if (student.geschlecht() != null && student.geschlecht() == 3) {
+                                originSchoolFemaleStudentIdsByClass
+                                    .computeIfAbsent(la.idKlasse(), ignored -> new HashMap<>())
+                                    .computeIfAbsent(originSchuleNr, ignored -> new HashSet<>())
+                                    .add(student.id());
+                            }
+                        }
                     }
                 }
             }
@@ -908,7 +938,10 @@ public class SchuleService {
                 specialNeedStudentIdsByClass,
                 nationalityStudentIdsByClass,
                 nationalityMaleStudentIdsByClass,
-                nationalityFemaleStudentIdsByClass
+                nationalityFemaleStudentIdsByClass,
+                originSchoolStudentIdsByClass,
+                originSchoolMaleStudentIdsByClass,
+                originSchoolFemaleStudentIdsByClass
             );
 
         return new SchuleStatistikenGesamt(
@@ -952,7 +985,10 @@ public class SchuleService {
             Map<Integer, Map<String, Set<Long>>> specialNeedStudentIdsByClass,
             Map<Integer, Map<String, Set<Long>>> nationalityStudentIdsByClass,
             Map<Integer, Map<String, Set<Long>>> nationalityMaleStudentIdsByClass,
-            Map<Integer, Map<String, Set<Long>>> nationalityFemaleStudentIdsByClass
+            Map<Integer, Map<String, Set<Long>>> nationalityFemaleStudentIdsByClass,
+            Map<Integer, Map<String, Set<Long>>> originSchoolStudentIdsByClass,
+            Map<Integer, Map<String, Set<Long>>> originSchoolMaleStudentIdsByClass,
+            Map<Integer, Map<String, Set<Long>>> originSchoolFemaleStudentIdsByClass
         ) {
         List<SchuleStatistikenGesamt.ClassStatistic> result = new ArrayList<>();
         Set<Integer> knownClassIds = new HashSet<>();
@@ -979,7 +1015,10 @@ public class SchuleService {
                     specialNeedStudentIdsByClass.get(klasse.id()),
                     nationalityStudentIdsByClass.get(klasse.id()),
                     nationalityMaleStudentIdsByClass.get(klasse.id()),
-                    nationalityFemaleStudentIdsByClass.get(klasse.id())
+                    nationalityFemaleStudentIdsByClass.get(klasse.id()),
+                    originSchoolStudentIdsByClass.get(klasse.id()),
+                    originSchoolMaleStudentIdsByClass.get(klasse.id()),
+                    originSchoolFemaleStudentIdsByClass.get(klasse.id())
                 ));
         }
 
@@ -997,7 +1036,10 @@ public class SchuleService {
                     specialNeedStudentIdsByClass.get(classId),
                     nationalityStudentIdsByClass.get(classId),
                     nationalityMaleStudentIdsByClass.get(classId),
-                    nationalityFemaleStudentIdsByClass.get(classId)
+                    nationalityFemaleStudentIdsByClass.get(classId),
+                    originSchoolStudentIdsByClass.get(classId),
+                    originSchoolMaleStudentIdsByClass.get(classId),
+                    originSchoolFemaleStudentIdsByClass.get(classId)
                 )));
 
         return result;
@@ -1014,7 +1056,10 @@ public class SchuleService {
             Map<String, Set<Long>> specialNeedStudentIds,
             Map<String, Set<Long>> nationalityStudentIds,
             Map<String, Set<Long>> nationalityMaleStudentIds,
-            Map<String, Set<Long>> nationalityFemaleStudentIds
+            Map<String, Set<Long>> nationalityFemaleStudentIds,
+            Map<String, Set<Long>> originSchoolStudentIds,
+            Map<String, Set<Long>> originSchoolMaleStudentIds,
+            Map<String, Set<Long>> originSchoolFemaleStudentIds
         ) {
         List<SchuleStatistikenGesamt.GradeStatistic> grades = gradeStudentIds == null
                 ? List.of()
@@ -1063,6 +1108,34 @@ public class SchuleService {
                 )
                 .toList();
 
+        List<SchuleStatistikenGesamt.OriginSchoolStatistic> originSchools = originSchoolStudentIds == null
+            ? List.of()
+            : originSchoolStudentIds.entrySet().stream()
+                .map(entry -> {
+                    String schulnummer = entry.getKey();
+                    int count = entry.getValue().size();
+                    int maleCount = originSchoolMaleStudentIds != null
+                        && originSchoolMaleStudentIds.containsKey(schulnummer)
+                        ? originSchoolMaleStudentIds.get(schulnummer).size() : 0;
+                    int femaleCount = originSchoolFemaleStudentIds != null
+                        && originSchoolFemaleStudentIds.containsKey(schulnummer)
+                        ? originSchoolFemaleStudentIds.get(schulnummer).size() : 0;
+                    String schulformKuerzel = (nrwSchulkatalogeintragRepository != null)
+                        ? nrwSchulkatalogeintragRepository
+                            .findBySchulnummer(schulnummer)
+                            .map(this::resolveSchoolFormKuerzel)
+                            .orElse(null)
+                        : null;
+                    return new SchuleStatistikenGesamt.OriginSchoolStatistic(
+                        schulnummer, schulformKuerzel, count, maleCount, femaleCount);
+                })
+                .sorted(
+                    Comparator.comparingInt(SchuleStatistikenGesamt.OriginSchoolStatistic::count)
+                        .reversed()
+                        .thenComparing(SchuleStatistikenGesamt.OriginSchoolStatistic::schulnummer)
+                )
+                .toList();
+
         return new SchuleStatistikenGesamt.ClassStatistic(
             classId,
             className,
@@ -1071,7 +1144,8 @@ public class SchuleService {
             femaleStudents == null ? 0 : femaleStudents.size(),
             grades,
             specialNeeds,
-            nationalities
+            nationalities,
+            originSchools
         );
     }
 
@@ -1190,6 +1264,145 @@ public class SchuleService {
         } catch (NumberFormatException ignored) {
             return "UNBEKANNT";
         }
+    }
+
+    private static final Set<String> CANONICAL_SCHOOL_FORM_KUERZEL = Set.of(
+            "BK", "FW", "G", "GE", "GM", "GY", "H", "HI", "PS", "R",
+            "S", "KS", "SB", "SG", "SK", "SR", "V", "WB", "WF"
+    );
+
+    private static final Map<String, String> SCHOOL_FORM_KUERZEL_BY_CODE = Map.ofEntries(
+            Map.entry("30", "BK"),
+            Map.entry("17", "FW"),
+            Map.entry("02", "G"),
+            Map.entry("15", "GE"),
+            Map.entry("16", "GM"),
+            Map.entry("20", "GY"),
+            Map.entry("04", "H"),
+            Map.entry("18", "HI"),
+            Map.entry("13", "PS"),
+            Map.entry("10", "R"),
+            Map.entry("08", "S"),
+            Map.entry("83", "KS"),
+            Map.entry("88", "SB"),
+            Map.entry("87", "SG"),
+            Map.entry("14", "SK"),
+            Map.entry("85", "SR"),
+            Map.entry("06", "V"),
+            Map.entry("25", "WB"),
+            Map.entry("19", "WF")
+    );
+
+    private static final Map<String, String> SCHOOL_FORM_KUERZEL_BY_ALIAS = Map.ofEntries(
+            Map.entry("GMS", "G"),
+            Map.entry("RKB", "G"),
+            Map.entry("ROB", "G"),
+            Map.entry("WAS", "G"),
+            Map.entry("A", "FW"),
+            Map.entry("AS", "FW"),
+            Map.entry("AB", "HI"),
+            Map.entry("EVB", "G"),
+            Map.entry("MEB", "G"),
+            Map.entry("JUB", "G")
+    );
+
+    private String resolveSchoolFormKuerzel(NrwSchulkatalogeintrag entry) {
+        if (entry == null) {
+            return null;
+        }
+
+        String context = normalizeSchoolFormContext(entry.schulname(), entry.amtsbez1(), entry.amtsbez2(), entry.amtsbez3());
+        if (context.contains("WEITERBILDUNGSKOLLEG") || context.contains("WBK")) {
+            return "WB";
+        }
+        if (context.contains("HIBERNIA")) {
+            return "HI";
+        }
+        if (context.contains("WALDORF")) {
+            return (context.contains("FOERDER") || context.contains("FORDER")) ? "WF" : "FW";
+        }
+        if (context.contains("KLINIKSCHULE") || context.contains("SCHULE FUER KRANKE") || context.contains("SCHULE FUR KRANKE")) {
+            return "KS";
+        }
+        if (context.contains("BERUFSKOLLEG")) {
+            return "BK";
+        }
+        if (context.contains("SEKUNDARSCHULE")) {
+            return "SK";
+        }
+        if (context.contains("GEMEINSCHAFTSSCHULE")) {
+            return "GM";
+        }
+        if (context.contains("GESAMTSCHULE")) {
+            return "GE";
+        }
+        if (context.contains("GYMNASIUM")) {
+            return "GY";
+        }
+        if (context.contains("REALSCHULE")) {
+            return "R";
+        }
+        if (context.contains("HAUPTSCHULE")) {
+            return "H";
+        }
+        if (context.contains("GRUNDSCHULE")) {
+            return "G";
+        }
+
+        return resolveSchoolFormKuerzel(entry.schultyp());
+    }
+
+    private String resolveSchoolFormKuerzel(String schoolFormValue) {
+        if (schoolFormValue == null || schoolFormValue.isBlank()) {
+            return null;
+        }
+
+        String normalized = schoolFormValue.trim().toUpperCase(Locale.ROOT);
+        String mapped = SCHOOL_FORM_KUERZEL_BY_CODE.get(normalized);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        // Einige Quellen liefern numerische Codes ohne fuehrende Null (z. B. "2" statt "02").
+        if (normalized.matches("\\d") || normalized.matches("\\d{2}")) {
+            String padded = String.format("%02d", Integer.parseInt(normalized));
+            mapped = SCHOOL_FORM_KUERZEL_BY_CODE.get(padded);
+        }
+        if (mapped != null) {
+            return mapped;
+        }
+
+        mapped = SCHOOL_FORM_KUERZEL_BY_ALIAS.get(normalized);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        if (CANONICAL_SCHOOL_FORM_KUERZEL.contains(normalized)) {
+            return normalized;
+        }
+
+        return null;
+    }
+
+    private String normalizeSchoolFormContext(String... values) {
+        StringBuilder merged = new StringBuilder();
+        if (values != null) {
+            for (String value : values) {
+                if (value != null && !value.isBlank()) {
+                    if (merged.length() > 0) {
+                        merged.append(' ');
+                    }
+                    merged.append(value);
+                }
+            }
+        }
+
+        String upper = merged.toString().toUpperCase(Locale.ROOT);
+        return upper
+                .replace('Ä', 'A')
+                .replace('Ö', 'O')
+                .replace('Ü', 'U')
+                .replace("ß", "SS");
     }
 
     private String resolveNationalityLabel(String kuerzel) {
