@@ -15,6 +15,15 @@ public record SchuleStatistikenRaw(
         
         @JsonProperty("jahrgaenge")
         List<Jahrgang> jahrgaenge,
+
+        @JsonProperty("religionen")
+        List<Religion> religionen,
+
+        @JsonProperty("klassen")
+        List<Klasse> klassen,
+
+        @JsonProperty("foederschwerpunkte")
+        List<Foerderschwerpunkt> foerderschwerpunkte,
         
         @JsonProperty("orte")
         List<Ort> orte
@@ -32,6 +41,12 @@ public record SchuleStatistikenRaw(
             
             @JsonProperty("wohnortID")
             Integer wohnortID,
+
+            @JsonProperty("religionID")
+            Integer idReligion,
+
+            @JsonProperty("staatsangehoerigkeitID")
+            String staatsangehoerigkeitID,
             
             @JsonProperty("idFoerderschwerpunkt1")
             Integer idFoerderschwerpunkt1,
@@ -53,6 +68,15 @@ public record SchuleStatistikenRaw(
     public record Lernabschnitt(
             @JsonProperty("idJahrgang")
             Integer idJahrgang,
+
+            @JsonProperty("idKlasse")
+            Integer idKlasse,
+
+            @JsonProperty("idFoerderschwerpunkt1")
+            Integer idFoerderschwerpunkt1,
+
+            @JsonProperty("idFoerderschwerpunkt2")
+            Integer idFoerderschwerpunkt2,
             
             @JsonProperty("Klassenart")
             String klassenart
@@ -74,6 +98,39 @@ public record SchuleStatistikenRaw(
             
             @JsonProperty("kuerzel")
             String kuerzel
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Religion(
+            @JsonProperty("id")
+            Integer id,
+
+            @JsonProperty("kuerzel")
+            String kuerzel
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Klasse(
+            @JsonProperty("id")
+            Integer id,
+
+            @JsonProperty("kuerzel")
+            String kuerzel,
+
+            @JsonProperty("idJahrgang")
+            Integer idJahrgang,
+
+            @JsonProperty("sortierung")
+            Integer sortierung
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Foerderschwerpunkt(
+            @JsonProperty("id")
+            Integer id,
+
+            @JsonProperty("kuerzelStatistik")
+            String kuerzelStatistik
     ) {}
     
     @JsonIgnoreProperties(ignoreUnknown = true)

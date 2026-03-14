@@ -174,23 +174,148 @@
           <div v-if="statistics.studentsByGrade && statistics.studentsByGrade.length" class="stats-subsection">
             <div class="subsection-title">Schüler nach Jahrgängen</div>
             <div class="grade-grid">
-              <div v-for="grade in statistics.studentsByGrade" :key="grade.gradeName" class="grade-tile">
+              <article v-for="grade in statistics.studentsByGrade" :key="grade.gradeName" class="grade-tile">
                 <div class="grade-name">{{ grade.gradeName }}</div>
                 <div class="grade-count-tile">{{ grade.count }}</div>
-              </div>
+
+                <div v-if="confessionsForGrade(grade.gradeName).length" class="grade-confession-list">
+                  <div
+                    v-for="confession in confessionsForGrade(grade.gradeName)"
+                    :key="`${grade.gradeName}-${confession.confessionCode}`"
+                    class="grade-confession-row"
+                  >
+                    <span class="grade-confession-name">{{ confession.confessionName }}</span>
+                    <span class="grade-confession-count">{{ confession.count }}</span>
+                  </div>
+                </div>
+              </article>
             </div>
           </div>
 
           <div v-if="statistics.topLocations && statistics.topLocations.length" class="stats-subsection">
             <div class="subsection-title">Top Wohnorte</div>
-            <div class="location-list">
-              <div v-for="loc in statistics.topLocations" :key="loc.locationName" class="location-item">
-                <span class="location-info">
-                  <span class="location-name">{{ loc.locationName }}</span>
-                  <span class="location-code">({{ loc.postalCode }})</span>
-                </span>
+            <div class="location-grid">
+              <article
+                v-for="loc in statistics.topLocations"
+                :key="`${loc.locationName}-${loc.postalCode}`"
+                class="location-tile"
+              >
+                <span class="location-name">{{ loc.locationName || 'Unbekannt' }}</span>
+                <span class="location-code">{{ loc.postalCode ? `PLZ ${loc.postalCode}` : 'PLZ unbekannt' }}</span>
                 <span class="location-count">{{ loc.count }}</span>
-              </div>
+              </article>
+            </div>
+          </div>
+
+          <div v-if="statistics.classStatistics && statistics.classStatistics.length" class="stats-subsection">
+            <div class="subsection-title">Klassen</div>
+            <div class="class-grid">
+              <article
+                v-for="classStatistic in statistics.classStatistics"
+                :key="classStatistic.classId ?? classStatistic.className"
+                class="class-card"
+              >
+                <div class="class-card-header">
+                  <div>
+                    <div class="class-card-title">{{ classStatistic.className }}</div>
+                    <div class="class-card-subtitle">Klassen-ID: {{ classStatistic.classId ?? 'ohne ID' }}</div>
+                  </div>
+                </div>
+
+                <div class="class-table-wrapper">
+                  <table class="class-table class-table-summary">
+                    <thead>
+                      <tr>
+                        <th>Gesamt</th>
+                        <th>Männlich</th>
+                        <th>Weiblich</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{{ classStatistic.totalStudents }}</td>
+                        <td>{{ classStatistic.maleStudents }}</td>
+                        <td>{{ classStatistic.femaleStudents }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="class-card-section">
+                  <div class="class-card-section-title">Jahrgänge</div>
+                  <div v-if="classStatistic.grades.length" class="class-table-wrapper">
+                    <table class="class-table">
+                      <thead>
+                        <tr>
+                          <th>Jahrgang</th>
+                          <th class="class-align-right">Anzahl</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="grade in classStatistic.grades" :key="`${classStatistic.classId ?? classStatistic.className}-${grade.gradeName}`">
+                          <td>{{ grade.gradeName }}</td>
+                          <td class="class-align-right">{{ grade.count }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else class="class-empty">Keine Schüler in Jahrgängen zugeordnet</div>
+                </div>
+
+                <div class="class-card-section">
+                  <div class="class-card-section-title">Förderschwerpunkte</div>
+                  <div v-if="classStatistic.specialNeeds.length" class="class-table-wrapper">
+                    <table class="class-table">
+                      <thead>
+                        <tr>
+                          <th>Kürzel</th>
+                          <th>Förderschwerpunkt</th>
+                          <th class="class-align-right">Anzahl</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="specialNeed in classStatistic.specialNeeds"
+                          :key="`${classStatistic.classId ?? classStatistic.className}-${specialNeed.specialNeedCode}`"
+                        >
+                          <td>{{ specialNeed.specialNeedCode }}</td>
+                          <td>{{ specialNeed.specialNeedName }}</td>
+                          <td class="class-align-right">{{ specialNeed.count }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else class="class-empty">Keine Förderschwerpunkte vorhanden</div>
+                </div>
+
+                <div class="class-card-section">
+                  <div class="class-card-section-title">Nationalitäten</div>
+                  <div v-if="classStatistic.nationalities && classStatistic.nationalities.length" class="class-table-wrapper">
+                    <table class="class-table">
+                      <thead>
+                        <tr>
+                          <th>Nationalität</th>
+                          <th class="class-align-right">Gesamt</th>
+                          <th class="class-align-right">M</th>
+                          <th class="class-align-right">W</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="nat in classStatistic.nationalities"
+                          :key="`${classStatistic.classId ?? classStatistic.className}-${nat.nationalityCode}`"
+                        >
+                          <td>{{ nat.nationalityName }} ({{ nat.nationalityCode }})</td>
+                          <td class="class-align-right">{{ nat.count }}</td>
+                          <td class="class-align-right">{{ nat.maleCount }}</td>
+                          <td class="class-align-right">{{ nat.femaleCount }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else class="class-empty">Keine Nationalitätsdaten vorhanden</div>
+                </div>
+              </article>
             </div>
           </div>
         </div>
@@ -216,10 +341,41 @@ interface SchuleStatistikenGesamt {
     gradeName: string;
     count: number;
   }>;
+  confessionsByGrade: Array<{
+    gradeName: string;
+    confessions: Array<{
+      confessionCode: string;
+      confessionName: string;
+      count: number;
+    }>;
+  }>;
   topLocations: Array<{
     locationName: string;
     postalCode: string;
     count: number;
+  }>;
+  classStatistics: Array<{
+    classId: number | null;
+    className: string;
+    totalStudents: number;
+    maleStudents: number;
+    femaleStudents: number;
+    grades: Array<{
+      gradeName: string;
+      count: number;
+    }>;
+    specialNeeds: Array<{
+      specialNeedCode: string;
+      specialNeedName: string;
+      count: number;
+    }>;
+    nationalities: Array<{
+      nationalityCode: string;
+      nationalityName: string;
+      count: number;
+      maleCount: number;
+      femaleCount: number;
+    }>;
   }>;
 }
 
@@ -234,6 +390,21 @@ const selectedItem = ref<SchuleStammdatenResponse | null>(null);
 const statistics = ref<SchuleStatistikenGesamt | null>(null);
 const statisticsLoading = ref(false);
 const statisticsError = ref('');
+
+const confessionsByGradeMap = computed(() => {
+  const map = new Map<string, SchuleStatistikenGesamt['confessionsByGrade'][number]['confessions']>();
+  const confessionsByGrade = statistics.value?.confessionsByGrade ?? [];
+
+  confessionsByGrade.forEach((entry) => {
+    map.set(entry.gradeName, entry.confessions ?? []);
+  });
+
+  return map;
+});
+
+const confessionsForGrade = (gradeName: string) => {
+  return confessionsByGradeMap.value.get(gradeName) ?? [];
+};
 
 const filteredItems = computed(() => {
   if (!searchQuery.value) return items.value;
@@ -787,7 +958,7 @@ tbody tr:last-child {
 
 .grade-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 0.6rem;
   margin-bottom: 0.5rem;
 }
@@ -797,67 +968,203 @@ tbody tr:last-child {
   border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: 8px;
   padding: 0.75rem 0.5rem;
-  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .grade-tile .grade-name {
   font-size: 0.85rem;
   color: rgba(226, 232, 240, 0.7);
   font-weight: 600;
+  text-align: center;
 }
 
 .grade-count-tile {
   font-size: 1.5rem;
   font-weight: 700;
   color: #38bdf8;
+  text-align: center;
 }
 
-.location-list {
+.grade-confession-list {
+  margin-top: 0.2rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  padding-top: 0.4rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
-.location-item {
+.grade-confession-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-  font-size: 0.9rem;
+  gap: 0.5rem;
+  font-size: 0.78rem;
 }
 
-.location-item:last-child {
-  border-bottom: none;
+.grade-confession-name {
+  color: rgba(226, 232, 240, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grade-confession-count {
+  color: #38bdf8;
+  font-weight: 700;
+  min-width: 1.5rem;
+  text-align: right;
+}
+
+.location-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+
+.location-tile {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  padding: 0.65rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 90px;
 }
 
 .location-name {
   color: #e2e8f0;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .location-code {
   color: rgba(226, 232, 240, 0.5);
-  font-size: 0.85rem;
-  margin-left: 0.5rem;
-}
-
-.location-info {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+  font-size: 0.8rem;
 }
 
 .location-count {
+  margin-top: auto;
   background: rgba(56, 189, 248, 0.1);
   color: #38bdf8;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.class-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 10px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.class-card-title {
+  color: #e2e8f0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.class-card-subtitle {
+  color: rgba(226, 232, 240, 0.65);
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+}
+
+.class-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.class-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.class-card-section-title {
+  color: rgba(226, 232, 240, 0.75);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.class-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 420px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.class-table th {
+  background: rgba(30, 41, 59, 0.65);
+  color: rgba(226, 232, 240, 0.75);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  text-align: left;
+}
+
+.class-table td {
+  color: #e2e8f0;
+  font-size: 0.84rem;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.class-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.class-table-summary {
+  min-width: 300px;
+}
+
+.class-table-summary th,
+.class-table-summary td {
+  text-align: center;
+}
+
+.class-table-summary td {
+  color: #7dd3fc;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.class-align-right {
+  text-align: right !important;
+}
+
+.class-empty {
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 0.8rem;
 }
 </style>
