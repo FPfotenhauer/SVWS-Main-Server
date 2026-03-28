@@ -76,5 +76,21 @@ services:
       - backend
       - frontend
 
+  grafana:
+    image: grafana/grafana:11.2.2
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: ${GRAFANA_PLUGINS:-yesoreyeram-infinity-datasource}
+      SVWS_STAT_BASIC_AUTH_B64: ${SVWS_STAT_BASIC_AUTH_B64:-}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - backend
+
 volumes:
   db_data:
+  grafana_data:

@@ -1,0 +1,25 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: Infinity REST
+    orgId: 1
+
+datasources:
+  - name: Infinity REST
+    uid: infinity-rest
+    orgId: 1
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    jsonData:
+      tlsSkipVerify: true
+      allowedHosts:
+        - 192.168.178.81
+        - 192.168.178.81:8443
+        - https://192.168.178.81:8443
+      httpHeaderName1: Authorization
+    secureJsonData:
+      httpHeaderValue1: Basic ${SVWS_STAT_BASIC_AUTH_B64}
+    isDefault: true
+    editable: false
+    version: 1000
+

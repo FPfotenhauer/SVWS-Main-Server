@@ -1,0 +1,230 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 10,
+      "title": "Schule",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "infinity-rest"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 1},
+      "id": 1,
+      "options": {"footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true, "sortBy": []},
+      "pluginVersion": "11.2.2",
+      "targets": [{
+        "columns": [
+          {"selector": "schulNr",                            "name": "Schulnummer",                "type": "number"},
+          {"selector": "schulform",                          "name": "Schulform",                  "type": "string"},
+          {"selector": "bezeichnung1",                       "name": "Bezeichnung 1",              "type": "string"},
+          {"selector": "bezeichnung2",                       "name": "Bezeichnung 2",              "type": "string"},
+          {"selector": "bezeichnung3",                       "name": "Bezeichnung 3",              "type": "string"},
+          {"selector": "strassenname",                       "name": "Straße",                     "type": "string"},
+          {"selector": "hausnummer",                         "name": "Hausnummer",                 "type": "string"},
+          {"selector": "plz",                                "name": "PLZ",                        "type": "string"},
+          {"selector": "ort",                                "name": "Ort",                        "type": "string"},
+          {"selector": "telefon",                            "name": "Telefon",                    "type": "string"},
+          {"selector": "email",                              "name": "E-Mail",                     "type": "string"},
+          {"selector": "webAdresse",                         "name": "Webadresse",                 "type": "string"},
+          {"selector": "dauerUnterrichtseinheit",            "name": "Unterrichtsdauer (min)",     "type": "number"},
+          {"selector": "istOffenerGanztag",                  "name": "Offener Ganztag",            "type": "boolean"},
+          {"selector": "istJva",                             "name": "JVA",                        "type": "boolean"},
+          {"selector": "hatInternationaleKontakte",          "name": "Int. Kontakte",              "type": "boolean"},
+          {"selector": "hatKonfessionelleKooperation",       "name": "Konfess. Kooperation",       "type": "boolean"}
+        ],
+        "filters": [], "format": "table", "parser": "backend", "refId": "A",
+        "root_selector": "schule", "source": "url", "type": "json",
+        "url_options": {"method": "GET"},
+        "url": "https://192.168.178.81:8443/db/${schema}/statistik/gesamt"
+      }],
+      "title": "Schuldaten",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 7},
+      "id": 20,
+      "title": "Jahrgänge & Klassen",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "infinity-rest"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 10, "w": 6, "x": 0, "y": 8},
+      "id": 2,
+      "options": {"footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true, "sortBy": []},
+      "pluginVersion": "11.2.2",
+      "targets": [{
+        "columns": [
+          {"selector": "id",         "name": "ID",          "type": "number"},
+          {"selector": "kuerzel",    "name": "Kürzel",      "type": "string"},
+          {"selector": "idKatalog",  "name": "Katalog ID",  "type": "number"},
+          {"selector": "sortierung", "name": "Sortierung",  "type": "number"}
+        ],
+        "filters": [], "format": "table", "parser": "backend", "refId": "A",
+        "root_selector": "jahrgaenge", "source": "url", "type": "json",
+        "url_options": {"method": "GET"},
+        "url": "https://192.168.178.81:8443/db/${schema}/statistik/gesamt"
+      }],
+      "title": "Jahrgänge",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "infinity-rest"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 10, "w": 18, "x": 6, "y": 8},
+      "id": 3,
+      "options": {"footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true, "sortBy": []},
+      "pluginVersion": "11.2.2",
+      "targets": [{
+        "columns": [
+          {"selector": "id",              "name": "ID",             "type": "number"},
+          {"selector": "kuerzel",         "name": "Klasse",         "type": "string"},
+          {"selector": "idJahrgang",      "name": "Jahrgang ID",    "type": "number"},
+          {"selector": "parallelitaet",   "name": "Parallelitaet",  "type": "string"},
+          {"selector": "sortierung",      "name": "Sortierung",     "type": "number"},
+          {"selector": "teilstandort",    "name": "Teilstandort",   "type": "string"},
+          {"selector": "idSchuljahresabschnitt", "name": "Abschnitt ID", "type": "number"}
+        ],
+        "filters": [], "format": "table", "parser": "backend", "refId": "A",
+        "root_selector": "klassen", "source": "url", "type": "json",
+        "url_options": {"method": "GET"},
+        "url": "https://192.168.178.81:8443/db/${schema}/statistik/gesamt"
+      }],
+      "title": "Klassen",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+      "id": 30,
+      "title": "Schüler",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "infinity-rest"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 18, "w": 24, "x": 0, "y": 19},
+      "id": 4,
+      "options": {"footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true, "sortBy": []},
+      "pluginVersion": "11.2.2",
+      "targets": [{
+        "columns": [
+          {"selector": "id",                           "name": "ID",                          "type": "number"},
+          {"selector": "geschlecht",                   "name": "Geschlecht",                  "type": "number"},
+          {"selector": "geburtsdatum",                 "name": "Geburtsdatum",                "type": "string"},
+          {"selector": "staatsangehoerigkeitID",       "name": "Staatsangehörigkeit",         "type": "string"},
+          {"selector": "religionID",                   "name": "Religion ID",                 "type": "number"},
+          {"selector": "status",                       "name": "Status",                      "type": "number"},
+          {"selector": "wohnortID",                    "name": "Wohnort ID",                  "type": "number"},
+          {"selector": "hatMigrationshintergrund",     "name": "Migrationshintergrund",       "type": "boolean"},
+          {"selector": "zuzugsjahr",                   "name": "Zuzugsjahr",                  "type": "number"},
+          {"selector": "istJvaSchueler",               "name": "JVA-Schüler",                 "type": "boolean"},
+          {"selector": "vorherigeSchuleNr",            "name": "Vorh. Schule Nr.",            "type": "string"},
+          {"selector": "vorigeAllgHerkunft",           "name": "Vorh. Herkunft",              "type": "string"},
+          {"selector": "vorigeEntlassdatum",           "name": "Vorh. Entlassdatum",          "type": "string"},
+          {"selector": "vorigeEntlassjahrgang",        "name": "Vorh. Entlassjahrgang",       "type": "string"},
+          {"selector": "entlassungDatum",              "name": "Entlassdatum",                "type": "string"},
+          {"selector": "idEntlassungAbschlussart",     "name": "Abschlussart",                "type": "string"},
+          {"selector": "idGrundschuleEinschulungsart", "name": "GS-Einschulungsart ID",       "type": "number"}
+        ],
+        "filters": [], "format": "table", "parser": "backend", "refId": "A",
+        "root_selector": "schueler", "source": "url", "type": "json",
+        "url_options": {"method": "GET"},
+        "url": "https://192.168.178.81:8443/db/${schema}/statistik/gesamt"
+      }],
+      "title": "Schüler (${schema})",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 37},
+      "id": 40,
+      "title": "Lehrer",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "infinity-rest"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 38},
+      "id": 5,
+      "options": {"footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true, "sortBy": []},
+      "pluginVersion": "11.2.2",
+      "targets": [{
+        "columns": [
+          {"selector": "id",                   "name": "ID",                    "type": "number"},
+          {"selector": "kuerzel",              "name": "Kürzel",                "type": "string"},
+          {"selector": "vorname",              "name": "Vorname",               "type": "string"},
+          {"selector": "nachname",             "name": "Nachname",              "type": "string"},
+          {"selector": "geburtsdatum",         "name": "Geburtsdatum",          "type": "string"},
+          {"selector": "geschlecht",           "name": "Geschlecht",            "type": "number"},
+          {"selector": "staatsangehoerigkeitID","name": "Staatsangehörigkeit",  "type": "string"},
+          {"selector": "idRechtsverhaeltnis",  "name": "Rechtsverhältnis ID",   "type": "number"},
+          {"selector": "idBeschaeftigungsart", "name": "Beschäftigungsart ID",  "type": "number"},
+          {"selector": "idEinsatzstatus",      "name": "Einsatzstatus ID",      "type": "number"},
+          {"selector": "pflichtstundensoll",   "name": "Pflichtstunden",        "type": "number"}
+        ],
+        "filters": [], "format": "table", "parser": "backend", "refId": "A",
+        "root_selector": "lehrer", "source": "url", "type": "json",
+        "url_options": {"method": "GET"},
+        "url": "https://192.168.178.81:8443/db/${schema}/statistik/gesamt"
+      }],
+      "title": "Lehrer",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "svws",
+    "infinity",
+    "rest"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {"selected": false, "text": "svwsdb", "value": "svwsdb"},
+        "hide": 0,
+        "label": "Schema (Schule)",
+        "name": "schema",
+        "query": "svwsdb",
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "SVWS Statistik Gesamt (${schema})",
+  "uid": "svws-statistik-gesamt",
+  "version": 7,
+  "weekStart": ""
+}
